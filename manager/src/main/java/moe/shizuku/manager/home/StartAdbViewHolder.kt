@@ -67,4 +67,8 @@ class StartAdbViewHolder(binding: HomeStartAdbBinding, root: View) : BaseViewHol
         binding.text1.text = context.getString(R.string.home_adb_description, Helps.ADB.get())
             .toHtml(HtmlCompat.FROM_HTML_OPTION_TRIM_WHITESPACE)
     }
+
+    override fun onBind() {
+        HomeCardShapeHelper.applyGroupedShape(itemView, firstCardAdapterPosition = 0)
+    }
 }

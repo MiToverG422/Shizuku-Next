@@ -4,6 +4,7 @@ import com.android.build.gradle.internal.tasks.CompileArtProfileTask
 plugins {
     id('com.android.application')
     id('org.jetbrains.kotlin.android')
+    id('org.jetbrains.kotlin.plugin.compose')
     id('dev.rikka.tools.refine')
     id('dev.rikka.tools.autoresconfig')
     id('dev.rikka.tools.materialthemebuilder')
@@ -15,6 +16,7 @@ android {
         applicationId "moe.shizuku.privileged.api"
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
+        resConfigs "en", "zh-rCN", "zh-rTW", "zh-rHK"
         externalNativeBuild {
             cmake {
                 arguments '-DANDROID_STL=none'
@@ -25,6 +27,10 @@ android {
         buildConfig true
         viewBinding true
         prefab true
+        compose true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.5.15'
     }
     signingConfigs {
         sign
@@ -143,6 +149,14 @@ configurations.configureEach {
 }
 
 dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.09.03')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.animation:animation'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    implementation 'androidx.activity:activity-compose:1.10.1'
+
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
 

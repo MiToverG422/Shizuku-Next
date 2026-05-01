@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="compose_bottom_nav_background">#232838</color>
+    <color name="compose_bottom_nav_selected_background">#34496F</color>
+    <color name="compose_bottom_nav_selected_content">#DCE7FF</color>
+    <color name="compose_bottom_nav_unselected_content">#A8B0C2</color>
+</resources>

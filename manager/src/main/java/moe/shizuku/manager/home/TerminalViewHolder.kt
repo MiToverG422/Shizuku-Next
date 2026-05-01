@@ -31,6 +31,7 @@ class TerminalViewHolder(private val binding: HomeTerminalBinding, private val r
     private inline val summary get() = binding.text2
 
     override fun onBind() {
+        HomeCardShapeHelper.applyGroupedShape(root)
         val context = itemView.context
         if (!data.isRunning) {
             root.isEnabled = false

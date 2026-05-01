@@ -25,6 +25,10 @@ public class ShizukuSettings {
     public static final String NIGHT_MODE = "night_mode";
     public static final String LANGUAGE = "language";
     public static final String KEEP_START_ON_BOOT = "start_on_boot";
+    public static final String STARTUP_MODE = "startup_mode";
+    public static final String KEEP_ALIVE_ENABLED = "keep_alive_enabled";
+    public static final String AUTO_START_ON_APP_OPEN = "auto_start_on_app_open";
+    public static final String AUTO_RESTART_IN_BACKGROUND = "auto_restart_in_background";
 
     private static SharedPreferences sPreferences;
 
@@ -73,6 +77,12 @@ public class ShizukuSettings {
         int UNKNOWN = -1;
         int ROOT = 0;
         int ADB = 1;
+    }
+
+    public static final class StartupMode {
+        public static final String BROADCAST = "broadcast";
+        public static final String ACCESSIBILITY = "accessibility";
+        public static final String SCRIPT = "script";
     }
 
     @LaunchMethod

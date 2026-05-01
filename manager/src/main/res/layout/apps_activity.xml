@@ -9,7 +9,7 @@
     android:paddingTop="?actionBarSize"
     android:paddingEnd="@dimen/rd_activity_horizontal_margin"
     android:scrollbarStyle="outsideOverlay"
-    android:scrollbars="vertical"
+    android:scrollbars="none"
     app:borderBottomVisibility="never"
     app:borderTopDrawable="@null"
     app:borderTopVisibility="whenTop"

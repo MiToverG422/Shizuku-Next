@@ -83,7 +83,15 @@ class AppViewHolder(private val binding: AppListItemBinding) : BaseViewHolder<Pa
     override fun onBind() {
         val pm = itemView.context.packageManager
         val userId = UserHandleCompat.getUserId(uid)
-        icon.setImageDrawable(ai.loadIcon(pm))
+        loadIconJob?.cancel()
+        icon.setImageBitmap(
+            AppIconCache.getOrLoadBitmap(
+                context,
+                ai,
+                ai.uid / 100000,
+                icon.layoutParams.width
+            )
+        )
         name.text = if (userId != UserHandleCompat.myUserId()) {
             val userInfo = ShizukuSystemApis.getUserInfo(userId)
             "${ai.loadLabel(pm)} - ${userInfo.name} ($userId)"

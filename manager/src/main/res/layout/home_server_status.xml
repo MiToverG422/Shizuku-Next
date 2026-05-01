@@ -4,38 +4,77 @@
     style="?homeCardStyle"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:orientation="horizontal">
-
-    <ImageView
-        android:id="@android:id/icon"
-        style="@style/CardIcon"
-        android:duplicateParentState="true"
-        android:importantForAccessibility="no"
-        android:src="@drawable/ic_server_error_24dp" />
+    android:minHeight="156dp"
+    android:gravity="top|start"
+    android:orientation="horizontal"
+    android:paddingStart="24dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="20dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/home_icon_padding"
+        android:layout_height="match_parent"
         android:duplicateParentState="true"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@android:id/text1"
-            style="@style/CardTitle"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:duplicateParentState="true"
-            android:lineSpacingExtra="2dp"
-            tools:text="Running (version 10)" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@android:id/text1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:duplicateParentState="true"
+                android:lineSpacingExtra="2dp"
+                android:textAppearance="?textAppearanceTitleLarge"
+                android:textColor="?android:textColorPrimary"
+                tools:text="Running" />
+
+            <TextView
+                android:id="@+id/text4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_mode_chip"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="8dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="2dp"
+                android:textAppearance="?textAppearanceLabelSmall"
+                android:textColor="?android:textColorPrimary"
+                tools:text="ADB" />
+        </LinearLayout>
 
         <TextView
             android:id="@android:id/text2"
-            style="@style/CardSummary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:duplicateParentState="true" />
+            android:duplicateParentState="true"
+            android:layout_marginTop="6dp"
+            android:textAppearance="?textAppearanceBodySmall"
+            android:textColor="?android:textColorSecondary" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/text3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.04"
+            android:textAppearance="?textAppearanceLabelMedium"
+            android:textColor="?android:textColorSecondary"
+            tools:text="T+00:00:00" />
 
     </LinearLayout>
 

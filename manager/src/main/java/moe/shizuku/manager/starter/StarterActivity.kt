@@ -193,4 +193,5 @@ private class ViewModel(context: Context, root: Boolean, host: String?, port: In
             }
         }
     }
+
 }

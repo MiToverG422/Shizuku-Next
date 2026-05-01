@@ -92,7 +92,7 @@
         <item name="android:layout_marginEnd">24dp</item>
         <item name="android:minHeight">56dp</item>
         <item name="android:padding">16dp</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">13sp</item>
         <item name="android:textColor">?textColorOnPrimaryContainer</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:gravity">center</item>
@@ -106,6 +106,42 @@
     <style name="GrantPermissionsButtons.Buttom">
         <item name="android:background">@drawable/grant_permissions_buttons_bottom</item>
         <item name="android:layout_marginTop">2dp</item>
+    </style>
+
+    <style name="Widget.ShizukuNext.BottomNav.ActiveIndicator" parent="">
+        <item name="android:color">?attr/colorPrimaryContainer</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.ShizukuNext.BottomNav.Indicator</item>
+    </style>
+
+    <style name="ShapeAppearance.ShizukuNext.BottomNav.Indicator" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
+    <style name="Widget.ShizukuNext.BottomNav.Item" parent="Widget.Material3.Button.TextButton">
+        <item name="android:insetLeft">0dp</item>
+        <item name="android:insetRight">0dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:textColor">@color/bottom_nav_item_color</item>
+        <item name="iconTint">@color/bottom_nav_item_color</item>
+        <item name="iconSize">20dp</item>
+        <item name="iconPadding">3dp</item>
+        <item name="backgroundTint">@null</item>
+        <item name="rippleColor">@android:color/transparent</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.ShizukuNext.BottomNav.Indicator</item>
+    </style>
+
+    <style name="Widget.ShizukuNext.Switch.WithStateIcon" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbIcon">@drawable/switch_thumb_icon_selector</item>
+        <item name="thumbIconTint">@color/switch_thumb_icon_tint</item>
     </style>
 
 </resources>

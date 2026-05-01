@@ -60,7 +60,13 @@ class StartWirelessAdbViewHolder(binding: HomeStartWirelessAdbBinding, root: Vie
         }
     }
 
+    override fun onBind() {
+        HomeCardShapeHelper.applyGroupedShape(itemView, firstCardAdapterPosition = 0)
+        super.onBind()
+    }
+
     override fun onBind(payloads: MutableList<Any>) {
+        HomeCardShapeHelper.applyGroupedShape(itemView, firstCardAdapterPosition = 0)
         super.onBind(payloads)
     }
 

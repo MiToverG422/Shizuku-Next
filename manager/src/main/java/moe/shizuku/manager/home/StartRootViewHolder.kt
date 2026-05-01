@@ -49,6 +49,7 @@ class StartRootViewHolder(private val binding: HomeStartRootBinding, root: View)
     }
 
     override fun onBind() {
+        HomeCardShapeHelper.applyGroupedShape(itemView, firstCardAdapterPosition = 0)
         start.isEnabled = true
         restart.isEnabled = true
         if (data!!) {

@@ -11,6 +11,7 @@
         <item name="android:windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+        <item name="materialSwitchStyle">@style/Widget.ShizukuNext.Switch.WithStateIcon</item>
     </style>
 
     <style name="Theme.Light" parent="Base.AppTheme.Light" />
@@ -23,6 +24,7 @@
         <item name="android:windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+        <item name="materialSwitchStyle">@style/Widget.ShizukuNext.Switch.WithStateIcon</item>
     </style>
 
     <style name="Theme" parent="Base.AppTheme" />

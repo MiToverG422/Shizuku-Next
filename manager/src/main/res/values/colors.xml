@@ -4,4 +4,10 @@
 
     <color name="app_color_light">#3F51B5</color>
     <color name="app_color_dark">#B1B8DF</color>
+
+    <color name="compose_bottom_nav_background">#F2F3F7</color>
+    <color name="compose_bottom_nav_selected_background">#DDE5FF</color>
+    <color name="compose_bottom_nav_selected_content">#1C3E8D</color>
+    <color name="compose_bottom_nav_unselected_content">#6E7485</color>
+    <color name="switch_thumb_icon_off_dark">#2F3443</color>
 </resources>

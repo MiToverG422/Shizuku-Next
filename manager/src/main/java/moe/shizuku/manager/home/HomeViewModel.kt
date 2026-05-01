@@ -26,9 +26,21 @@ class HomeViewModel : ViewModel() {
             return ServiceStatus()
         }
 
-        val uid = Shizuku.getUid()
-        val apiVersion = Shizuku.getVersion()
-        val patchVersion = Shizuku.getServerPatchVersion().let { if (it < 0) 0 else it }
+        val uid = try {
+            Shizuku.getUid()
+        } catch (_: IllegalStateException) {
+            return ServiceStatus()
+        }
+        val apiVersion = try {
+            Shizuku.getVersion()
+        } catch (_: IllegalStateException) {
+            return ServiceStatus()
+        }
+        val patchVersion = try {
+            Shizuku.getServerPatchVersion().let { if (it < 0) 0 else it }
+        } catch (_: IllegalStateException) {
+            0
+        }
         val seContext = if (apiVersion >= 6) {
             try {
                 Shizuku.getSELinuxContext()

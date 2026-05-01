@@ -23,4 +23,8 @@ class AdbPermissionLimitedViewHolder(binding: HomeExtraStepRequiredBinding, root
     init {
         binding.button1.setOnClickListener { v: View -> CustomTabsHelper.launchUrlOrCopy(v.context, Helps.ADB_PERMISSION.get()) }
     }
+
+    override fun onBind() {
+        HomeCardShapeHelper.applyGroupedShape(itemView)
+    }
 }

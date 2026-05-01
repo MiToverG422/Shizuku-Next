@@ -1,11 +1,21 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name" translatable="false">Shizuku-Next</string>
+    <string name="permission_group_label" translatable="false">Shizuku</string>
+    <string name="permission_group_description" translatable="false">@string/permission_label</string>
     <string name="permission_label">使用 Shizuku</string>
     <string name="permission_description">允许应用使用 Shizuku。</string>
     <string name="home_status_service_is_running">%1$s 正在运行</string>
     <string name="home_status_service_version">版本 %2$s，%1$s</string>
     <string name="home_status_service_version_update"><![CDATA[版本 %2$s，%1$s<br>再次启动来升级到版本 %3$s]]></string>
     <string name="home_status_service_not_running">%1$s未运行</string>
+    <string name="home_status_running_simple">正在运行</string>
+    <string name="home_status_not_running_simple">未运行</string>
+    <string name="home_status_mode_root">ROOT</string>
+    <string name="home_status_mode_adb">ADB</string>
+    <string name="home_status_mode_unknown">未知</string>
+    <string name="home_status_version_pid_format">版本：%1$s | PID %2$s</string>
+    <string name="home_status_runtime_format">T+%1$s</string>
     <string name="home_root_button_start">启动</string>
     <string name="home_root_button_restart">重新启动</string>
     <string name="home_root_title"><![CDATA[启动（针对已 root 设备）]]></string>
@@ -30,12 +40,19 @@
     <string name="action_about">关于</string>
     <string name="about_view_source_code"><![CDATA[在 %s 查看源码]]></string>
     <string name="settings_title">设置</string>
+    <string name="starting_root_shell" translatable="false">正在启动 root shell…</string>
     <string name="start_with_root_failed">未授予 root 权限或是该设备没有 root，因此无法启动服务。</string>
     <string name="notification_channel_service_status">服务启动状态</string>
+    <string name="notification_channel_keep_alive">服务状态通知</string>
     <string name="notification_service_starting">Shizuku 服务正在启动…</string>
     <string name="notification_service_start_failed">启动 Shizuku 服务失败。</string>
     <string name="notification_service_start_no_root">请求 root 权限失败。</string>
     <string name="notification_working">工作中…</string>
+    <string name="keep_alive_notification_title_running">Shizuku 正在运行</string>
+    <string name="keep_alive_notification_title_not_running">Shizuku 未启动</string>
+    <string name="keep_alive_notification_content_waiting">等待 Shizuku 进程…</string>
+    <string name="keep_alive_notification_content_running">PID：%1$d | T+%2$s</string>
+    <string name="keep_alive_notification_action_hide">隐藏通知</string>
     <string name="settings_language">语言</string>
     <string name="settings_user_interface">界面外观</string>
     <string name="settings_black_night_theme">黑色夜间主题</string>
@@ -84,6 +101,19 @@
     <string name="home_root_description_sui"><![CDATA[如果您正在使用 Magisk，可以尝试 %1$s。对于 root 用户，它将最终取代 Shizuku。注意，已有的应用需要一点点修改来使用 %2$s。]]></string>
     <string name="settings_start_on_boot_summary">对于已 root 设备，Shizuku 可以开机启动</string>
     <string name="settings_start_on_boot">开机启动（root）</string>
+    <string name="settings_keep_alive">显示状态通知</string>
+    <string name="settings_keep_alive_summary">显示 Shizuku 常驻状态通知</string>
+    <string name="settings_auto_start_on_app_open">打开 App 时自动激活</string>
+    <string name="settings_auto_start_on_app_open_summary">启动 Shizuku-Next 时将尝试自动激活服务</string>
+    <string name="settings_auto_restart_in_background">后台掉线自动重启</string>
+    <string name="settings_auto_restart_in_background_summary">应用在后台时若 Shizuku 停止，将尝试自动重启服务</string>
+    <string name="settings_service">服务</string>
+    <string name="settings_startup_broadcast">开机广播</string>
+    <string name="settings_startup_broadcast_summary">通过系统广播在开机时自动启动</string>
+    <string name="settings_startup_accessibility">无障碍自启</string>
+    <string name="settings_startup_accessibility_summary">通过无障碍唤醒开机广播</string>
+    <string name="settings_startup_script">开机脚本</string>
+    <string name="settings_startup_script_summary">通过Root权限开机执行脚本自动启动</string>
     <string name="permission_warning_template"><![CDATA[要允许<b>%1$s</b>%2$s吗？]]></string>
     <string name="grant_dialog_button_allow_always">始终允许</string>
     <string name="grant_dialog_button_deny">拒绝</string>
@@ -128,4 +158,21 @@
     <string name="home_app_management_empty">已请求或声明 Shizuku 的应用程序将显示在此处。</string>
     <string name="home_adb_is_limited_title">您需要进行额外的步骤</string>
     <string name="home_adb_is_limited_description">您的设备制造商限制了 adb 的权限，使用 Shizuku 的应用无法正常工作。\n\n通常，在“开发者选项”中调整一些选项即可解除此限制。请阅读帮助来了解具体的操作方式。\n\n您可能需要重新启动 Shizuku 以使操作生效。</string>
+
+    <string name="nav_home">首页</string>
+    <string name="nav_apps">权限</string>
+    <string name="nav_settings">设置</string>
+    <string name="nav_quickshell">命令</string>
+    <string name="activation_methods_title">激活方式</string>
+
+    <string name="quickshell_title">快捷命令</string>
+    <string name="quickshell_hint">输入 shell 指令</string>
+    <string name="quickshell_run">执行</string>
+    <string name="quickshell_send">发送</string>
+    <string name="quickshell_inputs">输入</string>
+    <string name="quickshell_no_server">Shizuku 未运行。</string>
+    <string name="language_english">English</string>
+    <string name="language_simplified_chinese">简体中文</string>
+    <string name="language_traditional_chinese_taiwan">繁體中文（台灣）</string>
+    <string name="language_traditional_chinese_hong_kong">繁體中文（香港）</string>
 </resources>

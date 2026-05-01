@@ -2,6 +2,7 @@ package moe.shizuku.manager.management;
 
 import android.content.pm.PackageInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import rikka.recyclerview.BaseRecyclerViewAdapter;
@@ -35,5 +36,9 @@ public class AppsAdapter extends BaseRecyclerViewAdapter<ClassCreatorPool> {
             getItems().addAll(data);
         }
         notifyDataSetChanged();
+    }
+
+    public List<Object> getDataItems() {
+        return new ArrayList<>(getItems());
     }
 }
