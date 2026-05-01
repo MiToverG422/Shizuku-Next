@@ -2,9 +2,12 @@ name: App
 
 on:
   push:
+    branches:
+      - master
     paths-ignore:
       - '.github/ISSUE_TEMPLATE'
-
+  workflow_dispatch:
+  
 jobs:
   build:
     runs-on: ubuntu-latest
