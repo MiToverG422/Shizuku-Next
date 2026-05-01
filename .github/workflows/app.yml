@@ -18,13 +18,23 @@ jobs:
         with:
           submodules: 'recursive'
           fetch-depth: 0
+          
+      - name: Detect signing secrets
+        id: signing
+        run: |
+          if [ -n "${{ secrets.KEYSTORE }}" ] && [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] && [ -n "${{ secrets.KEYSTORE_ALIAS }}" ] && [ -n "${{ secrets.KEYSTORE_ALIAS_PASSWORD }}" ]; then
+            echo "enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "enabled=false" >> $GITHUB_OUTPUT
+          fi
+          
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
       - name: Write key
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        if: steps.signing.outputs.enabled == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
         run: |
           echo KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }} > signing.properties
           echo KEYSTORE_ALIAS=${{ secrets.KEYSTORE_ALIAS }} >> signing.properties
@@ -46,12 +56,18 @@ jobs:
           echo 'android.native.buildOutput=verbose' >> gradle.properties
           echo 'org.gradle.caching=true' >> gradle.properties
           echo 'org.gradle.parallel=true' >> gradle.properties
-          ./gradlew :manager:assemble
-          releaseName=`ls manager/build/outputs/apk/release/shizuku*-v*-release.apk | awk -F '(/|-release.apk)' '{print $6}'` && echo "releaseName=$releaseName" >> $GITHUB_OUTPUT
+          if [ "${{ steps.signing.outputs.enabled }}" = "true" ]; then
+            ./gradlew :manager:assemble
+            releaseName=`ls manager/build/outputs/apk/release/shizuku*-v*-release.apk | awk -F '(/|-release.apk)' '{print $6}'`
+            echo "artifactName=$releaseName" >> $GITHUB_OUTPUT
+          else
+            ./gradlew :manager:assembleDebug
+            echo "artifactName=shizuku-debug" >> $GITHUB_OUTPUT
+          fi
       - name: Upload release
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.buildWithGradle.outputs.releaseName }}
+          name: ${{ steps.buildWithGradle.outputs.artifactName }}
           path: "manager/build/outputs"
           compression-level: 9
