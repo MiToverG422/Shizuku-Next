@@ -44,7 +44,12 @@ object ShizukuPidResolver {
                 arrayOf(
                     "sh",
                     "-c",
-                    "pid=${'$'}(pidof shizuku_server 2>/dev/null || pgrep -f shizuku_server | head -n1); " +
+                    "pid=${'$'}(" +
+                        "pidof shizuku_server 2>/dev/null || " +
+                        "pidof moe.shizuku.privileged.api 2>/dev/null || " +
+                        "pgrep -f 'moe.shizuku.privileged.api|shizuku_server' | head -n1 || " +
+                        "ps -A 2>/dev/null | grep -E 'moe\\.shizuku\\.privileged\\.api|shizuku_server' | grep -v grep | head -n1 | awk '{print ${'$'}2}'" +
+                    "); " +
                         "if [ -z \"${'$'}pid\" ]; then exit 1; fi; " +
                         "hz=${'$'}(getconf CLK_TCK 2>/dev/null || echo 100); " +
                         "up=${'$'}(cut -d' ' -f1 /proc/uptime); " +

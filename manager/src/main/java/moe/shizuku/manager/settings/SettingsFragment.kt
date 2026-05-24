@@ -30,6 +30,7 @@ import moe.shizuku.manager.ktx.isComponentEnabled
 import moe.shizuku.manager.ktx.setComponentEnabled
 import moe.shizuku.manager.ktx.toHtml
 import moe.shizuku.manager.receiver.BootCompleteReceiver
+import moe.shizuku.manager.service.KeepAliveNotificationHelper
 import moe.shizuku.manager.service.KeepAliveWorker
 import moe.shizuku.manager.utils.CustomTabsHelper
 import rikka.material.app.LocaleDelegate
@@ -153,6 +154,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     KeepAliveWorker.runNow(context)
                 } else {
                     KeepAliveWorker.cancel(context)
+                    KeepAliveNotificationHelper.cancel(context)
                 }
                 true
             }

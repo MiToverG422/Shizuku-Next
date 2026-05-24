@@ -140,6 +140,9 @@ class ServerStatusViewHolder(private val binding: HomeServerStatusBinding, root:
             runtimeSinceElapsed = 0L
             return context.getString(R.string.home_status_runtime_format, "--:--:--")
         }
+        if (pid <= 0) {
+            return context.getString(R.string.home_status_runtime_format, "--:--:--")
+        }
 
         val now = SystemClock.elapsedRealtime()
         if (pid > 0 && runtimePid > 0 && runtimePid != pid) {

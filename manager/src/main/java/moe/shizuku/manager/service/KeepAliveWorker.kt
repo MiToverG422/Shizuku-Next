@@ -57,13 +57,16 @@ class KeepAliveWorker(
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val prefs = ShizukuSettings.getPreferences()
         val keepAliveEnabled = prefs.getBoolean(ShizukuSettings.KEEP_ALIVE_ENABLED, false)
-        if (!keepAliveEnabled) return@withContext Result.success()
+        if (!keepAliveEnabled) {
+            KeepAliveNotificationHelper.cancel(applicationContext)
+            return@withContext Result.success()
+        }
 
         val alive = Shizuku.pingBinder()
         if (!alive) {
             runCatching { ServiceStarter.tryStartByLastMode() }
         }
+        KeepAliveNotificationHelper.update(applicationContext, Shizuku.pingBinder())
         Result.success()
     }
 }
-
