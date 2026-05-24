@@ -13,7 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import moe.shizuku.manager.ktx.logd
-import moe.shizuku.manager.service.KeepAliveService
+import moe.shizuku.manager.service.KeepAliveWorker
 import moe.shizuku.manager.utils.ServiceStarter
 import org.lsposed.hiddenapibypass.HiddenApiBypass
 import rikka.core.util.BuildUtils.atLeast30
@@ -113,7 +113,8 @@ class ShizukuApplication : Application() {
             override fun onActivityDestroyed(activity: android.app.Activity) = Unit
         })
         if (ShizukuSettings.getPreferences().getBoolean(ShizukuSettings.KEEP_ALIVE_ENABLED, false)) {
-            KeepAliveService.start(this)
+            KeepAliveWorker.schedule(this)
+            KeepAliveWorker.runNow(this)
         }
     }
 

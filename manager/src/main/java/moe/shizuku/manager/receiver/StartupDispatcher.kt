@@ -19,7 +19,7 @@ import moe.shizuku.manager.adb.AdbClient
 import moe.shizuku.manager.adb.AdbKey
 import moe.shizuku.manager.adb.AdbMdns
 import moe.shizuku.manager.adb.PreferenceAdbKeyStore
-import moe.shizuku.manager.service.KeepAliveService
+import moe.shizuku.manager.service.KeepAliveWorker
 import moe.shizuku.manager.starter.Starter
 import moe.shizuku.manager.utils.UserHandleCompat
 import rikka.shizuku.Shizuku
@@ -38,7 +38,8 @@ internal object StartupDispatcher {
         if (source == SOURCE_BROADCAST &&
             ShizukuSettings.getPreferences().getBoolean(ShizukuSettings.KEEP_ALIVE_ENABLED, false)
         ) {
-            KeepAliveService.start(context)
+            KeepAliveWorker.schedule(context)
+            KeepAliveWorker.runNow(context)
         }
 
         if (Shizuku.pingBinder()) return
@@ -104,4 +105,3 @@ internal object StartupDispatcher {
         }
     }
 }
-

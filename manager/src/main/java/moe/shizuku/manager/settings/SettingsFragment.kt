@@ -30,7 +30,7 @@ import moe.shizuku.manager.ktx.isComponentEnabled
 import moe.shizuku.manager.ktx.setComponentEnabled
 import moe.shizuku.manager.ktx.toHtml
 import moe.shizuku.manager.receiver.BootCompleteReceiver
-import moe.shizuku.manager.service.KeepAliveService
+import moe.shizuku.manager.service.KeepAliveWorker
 import moe.shizuku.manager.utils.CustomTabsHelper
 import rikka.material.app.LocaleDelegate
 import rikka.recyclerview.addEdgeSpacing
@@ -149,9 +149,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
             Preference.OnPreferenceChangeListener { _, newValue ->
                 val enabled = newValue as? Boolean ?: return@OnPreferenceChangeListener false
                 if (enabled) {
-                    KeepAliveService.start(context)
+                    KeepAliveWorker.schedule(context)
+                    KeepAliveWorker.runNow(context)
                 } else {
-                    KeepAliveService.stop(context)
+                    KeepAliveWorker.cancel(context)
                 }
                 true
             }
