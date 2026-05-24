@@ -144,9 +144,9 @@ open class HomeActivity : AppBarActivity() {
         }
 
         homeModel.serviceStatus.observe(this) {
-            if (it.status == Status.SUCCESS) {
-                val status = homeModel.serviceStatus.value?.data ?: return@observe
-                adapter.updateData()
+            val status = it.data ?: return@observe
+            adapter.updateData()
+            if (it.status == Status.SUCCESS && status.isRunning) {
                 ShizukuSettings.setLastLaunchMode(if (status.uid == 0) ShizukuSettings.LaunchMethod.ROOT else ShizukuSettings.LaunchMethod.ADB)
             }
         }

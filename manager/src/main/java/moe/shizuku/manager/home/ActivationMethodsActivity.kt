@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.util.TypedValue
 import moe.shizuku.manager.R
 import moe.shizuku.manager.app.AppBarActivity
-import rikka.lifecycle.Status
 import rikka.lifecycle.viewModels
 import rikka.recyclerview.addEdgeSpacing
 import rikka.recyclerview.addItemSpacing
@@ -34,10 +33,8 @@ class ActivationMethodsActivity : AppBarActivity() {
         )
 
         homeModel.serviceStatus.observe(this) {
-            if (it.status == Status.SUCCESS) {
-                val status = homeModel.serviceStatus.value?.data ?: return@observe
-                adapter.updateData(status)
-            }
+            val status = it.data ?: return@observe
+            adapter.updateData(status)
         }
     }
 
