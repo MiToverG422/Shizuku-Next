@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Process as AndroidProcess
 import rikka.shizuku.Shizuku
 import java.io.BufferedReader
+import java.io.InputStream
 import java.io.InputStreamReader
 
 object ShizukuPidResolver {
@@ -60,10 +61,14 @@ object ShizukuPidResolver {
                 ),
                 null,
                 null
-            ) as? java.lang.Process ?: return null
+            ) ?: return null
 
-            val text = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }.trim()
-            process.destroy()
+            val inputStream = runCatching {
+                process.javaClass.getMethod("getInputStream").invoke(process) as InputStream
+            }.getOrNull() ?: return null
+
+            val text = BufferedReader(InputStreamReader(inputStream)).use { it.readText() }.trim()
+            runCatching { process.javaClass.getMethod("destroy").invoke(process) }
 
             val parts = text.split(Regex("\\s+")).filter { it.isNotBlank() }
             val pid = parts.getOrNull(0)?.toIntOrNull() ?: return null
