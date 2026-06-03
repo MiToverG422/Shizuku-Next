@@ -10,3 +10,4 @@ public class ServerConstants {
 
     public static final int BINDER_TRANSACTION_getApplications = 10001;
 }
+

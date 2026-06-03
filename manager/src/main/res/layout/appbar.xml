@@ -1,23 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.appbar.AppBarLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/toolbar_container"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    android:elevation="0dp"
     android:fitsSystemWindows="true"
-    app:liftOnScroll="true"
-    tools:viewBindingIgnore="true">
+    android:stateListAnimator="@null"
+    app:elevation="0dp"
+    app:liftOnScroll="false">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="@null"
+        android:layout_height="?actionBarSize"
+        android:background="@android:color/transparent"
         android:elevation="0dp"
+        android:stateListAnimator="@null"
         android:theme="@style/ThemeOverlay.MaterialComponents.ActionBar"
-        app:layout_collapseMode="pin"
-        tools:title="Title" />
+        app:contentInsetStart="@dimen/toolbar_content_padding_start"
+        app:contentInsetStartWithNavigation="@dimen/toolbar_content_padding_start_with_navigation" />
 
 </com.google.android.material.appbar.AppBarLayout>

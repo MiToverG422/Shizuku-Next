@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="?homeCardStyle"
+    android:gravity="center_vertical"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:duplicateParentState="true"
+        android:orientation="vertical">
+
+        <TextView
+            style="@style/CardTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:duplicateParentState="true"
+            android:text="@string/home_version_info_android_label" />
+
+        <TextView
+            android:id="@+id/android_version"
+            style="@style/CardSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:duplicateParentState="true"
+            tools:text="15 (API 35)" />
+
+        <TextView
+            style="@style/CardTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:duplicateParentState="true"
+            android:text="@string/home_version_info_model_label" />
+
+        <TextView
+            android:id="@+id/device_model"
+            style="@style/CardSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:duplicateParentState="true"
+            android:ellipsize="end"
+            android:maxLines="2"
+            tools:text="OPPO CPH2841" />
+
+        <TextView
+            style="@style/CardTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:duplicateParentState="true"
+            android:text="@string/home_version_info_app_label" />
+
+        <TextView
+            android:id="@+id/app_version"
+            style="@style/CardSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:duplicateParentState="true"
+            tools:text="13.6.0.r1094.8298d564 (1094)" />
+
+    </LinearLayout>
+
+</LinearLayout>

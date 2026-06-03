@@ -2,6 +2,8 @@ package moe.shizuku.manager.management;
 
 import android.content.pm.PackageInfo;
 
+import moe.shizuku.manager.R;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,7 +16,7 @@ public class AppsAdapter extends BaseRecyclerViewAdapter<ClassCreatorPool> {
         super();
 
         getCreatorPool().putRule(PackageInfo.class, AppViewHolder.CREATOR);
-        getCreatorPool().putRule(Object.class, EmptyViewHolder.CREATOR);
+        getCreatorPool().putRule(EmptyState.class, EmptyViewHolder.CREATOR);
         setHasStableIds(true);
     }
 
@@ -30,11 +32,17 @@ public class AppsAdapter extends BaseRecyclerViewAdapter<ClassCreatorPool> {
 
     public void updateData(List<PackageInfo> data) {
         getItems().clear();
-        if (data.isEmpty()) {
-            getItems().add(new Object());
+        if (data == null || data.isEmpty()) {
+            getItems().add(new EmptyState(R.string.home_app_management_empty));
         } else {
             getItems().addAll(data);
         }
+        notifyDataSetChanged();
+    }
+
+    public void showEmpty(int messageRes) {
+        getItems().clear();
+        getItems().add(new EmptyState(messageRes));
         notifyDataSetChanged();
     }
 

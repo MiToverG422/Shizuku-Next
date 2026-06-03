@@ -52,11 +52,16 @@ class AppsPageFragment : Fragment() {
                 Status.SUCCESS -> adapter.updateData(it.data)
                 Status.ERROR -> {
                     val message = Objects.toString(it.error, "unknown")
+                    val binderUnavailable =
+                        message.contains("binder haven't been received", ignoreCase = true) ||
+                            message.contains("IllegalStateException", ignoreCase = true) ||
+                            !Shizuku.pingBinder()
                     // Binder may not be ready right after launch; don't surface transient binder errors.
-                    if (!message.contains("binder haven't been received", ignoreCase = true) &&
-                        !message.contains("IllegalStateException", ignoreCase = true)
-                    ) {
+                    if (binderUnavailable) {
+                        adapter.showEmpty(R.string.app_management_empty_service_not_running)
+                    } else {
                         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                        adapter.showEmpty(R.string.home_app_management_empty)
                     }
                 }
                 Status.LOADING -> Unit

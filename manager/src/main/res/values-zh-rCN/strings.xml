@@ -16,6 +16,15 @@
     <string name="home_status_mode_unknown">未知</string>
     <string name="home_status_version_pid_format">版本：%1$s | PID %2$s</string>
     <string name="home_status_runtime_format">T+%1$s</string>
+    <string name="home_version_info_app_label">版本</string>
+    <string name="home_version_info_version_format">%1$s (%2$d)</string>
+    <string name="home_version_info_android_label">Android 版本</string>
+    <string name="home_version_info_model_label">型号</string>
+    <string name="home_version_info_android_format">%1$s (API %2$d)</string>
+    <string name="home_version_info_model_format">%1$s</string>
+    <string name="home_authorized_count_title">已授权</string>
+    <string name="home_authorized_count_summary">已授予 Shizuku 权限的应用：%1$d 个</string>
+    <string name="home_stop_service_summary">结束当前服务</string>
     <string name="home_root_button_start">启动</string>
     <string name="home_root_button_restart">重新启动</string>
     <string name="home_root_title"><![CDATA[启动（针对已 root 设备）]]></string>
@@ -39,6 +48,7 @@
     <string name="dialog_requesting_legacy_button_open_shizuku">打开 Shizuku</string>
     <string name="action_about">关于</string>
     <string name="about_view_source_code"><![CDATA[在 %s 查看源码]]></string>
+    <string name="about_join_telegram"><![CDATA[加入 Telegram 频道：%s]]></string>
     <string name="settings_title">设置</string>
     <string name="starting_root_shell" translatable="false">正在启动 root shell…</string>
     <string name="start_with_root_failed">未授予 root 权限或是该设备没有 root，因此无法启动服务。</string>
@@ -110,8 +120,6 @@
     <string name="settings_service">服务</string>
     <string name="settings_startup_broadcast">开机广播</string>
     <string name="settings_startup_broadcast_summary">通过系统广播在开机时自动启动</string>
-    <string name="settings_startup_accessibility">无障碍自启</string>
-    <string name="settings_startup_accessibility_summary">通过无障碍唤醒开机广播</string>
     <string name="settings_startup_script">开机脚本</string>
     <string name="settings_startup_script_summary">通过Root权限开机执行脚本自动启动</string>
     <string name="permission_warning_template"><![CDATA[要允许<b>%1$s</b>%2$s吗？]]></string>
@@ -156,6 +164,7 @@
     <string name="adb_pairing_tutorial_content_network_limation_not_foreground">某些系统（例如 MIUI）不允许应用在不可见时访问网络，即使应用已按标准使用前台服务。请在此类系统上为 Shizuku 禁用电池优化功能。</string>
     <string name="settings_use_system_color">使用系统主题颜色</string>
     <string name="home_app_management_empty">已请求或声明 Shizuku 的应用程序将显示在此处。</string>
+    <string name="app_management_empty_service_not_running">启动 Shizuku 后即可查看和管理应用权限。</string>
     <string name="home_adb_is_limited_title">您需要进行额外的步骤</string>
     <string name="home_adb_is_limited_description">您的设备制造商限制了 adb 的权限，使用 Shizuku 的应用无法正常工作。\n\n通常，在“开发者选项”中调整一些选项即可解除此限制。请阅读帮助来了解具体的操作方式。\n\n您可能需要重新启动 Shizuku 以使操作生效。</string>
 

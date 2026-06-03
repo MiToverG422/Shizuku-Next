@@ -7,12 +7,11 @@
     android:layout_height="match_parent"
     android:clipToPadding="false"
     android:fadeScrollbars="false"
-    android:paddingTop="?actionBarSize"
     android:scrollbarStyle="outsideOverlay"
     android:scrollbars="none"
     app:borderBottomVisibility="never"
     app:borderTopDrawable="@null"
     app:borderTopVisibility="whenTop"
-    app:fitsSystemWindowsInsets="bottom|top"
+    app:fitsSystemWindowsInsets="bottom"
     tools:ignore="UnusedResources"
     tools:viewBindingIgnore="true" />

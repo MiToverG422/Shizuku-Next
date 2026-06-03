@@ -8,11 +8,13 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.work.Configuration
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import moe.shizuku.manager.ktx.logd
+import moe.shizuku.manager.service.KeepAliveNotificationHelper
 import moe.shizuku.manager.service.KeepAliveWorker
 import moe.shizuku.manager.utils.ServiceStarter
 import org.lsposed.hiddenapibypass.HiddenApiBypass
@@ -22,7 +24,7 @@ import rikka.shizuku.Shizuku
 
 lateinit var application: ShizukuApplication
 
-class ShizukuApplication : Application() {
+class ShizukuApplication : Application(), Configuration.Provider {
 
     private val backgroundMonitorHandler = Handler(Looper.getMainLooper())
     @Volatile
@@ -40,6 +42,11 @@ class ShizukuApplication : Application() {
 
     @Volatile
     private var startedActivityCount = 0
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setMinimumLoggingLevel(if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.ERROR)
+            .build()
 
     fun isAppInForeground(): Boolean = startedActivityCount > 0
 
@@ -113,6 +120,7 @@ class ShizukuApplication : Application() {
             override fun onActivityDestroyed(activity: android.app.Activity) = Unit
         })
         if (ShizukuSettings.getPreferences().getBoolean(ShizukuSettings.KEEP_ALIVE_ENABLED, false)) {
+            KeepAliveNotificationHelper.startTicker(this)
             KeepAliveWorker.schedule(this)
             KeepAliveWorker.runNow(this)
         }

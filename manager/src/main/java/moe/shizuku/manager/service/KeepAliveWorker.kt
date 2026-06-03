@@ -13,7 +13,6 @@ import androidx.work.WorkerParameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import moe.shizuku.manager.ShizukuSettings
-import moe.shizuku.manager.utils.ServiceStarter
 import rikka.shizuku.Shizuku
 import java.util.concurrent.TimeUnit
 
@@ -63,10 +62,7 @@ class KeepAliveWorker(
         }
 
         val alive = Shizuku.pingBinder()
-        if (!alive) {
-            runCatching { ServiceStarter.tryStartByLastMode() }
-        }
-        KeepAliveNotificationHelper.update(applicationContext, Shizuku.pingBinder())
+        KeepAliveNotificationHelper.update(applicationContext, alive)
         Result.success()
     }
 }

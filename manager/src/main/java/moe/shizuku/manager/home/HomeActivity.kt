@@ -36,6 +36,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Surface
@@ -110,7 +111,13 @@ open class HomeActivity : AppBarActivity() {
 
     private val homeModel by viewModels { HomeViewModel() }
     private val appsModel by appsViewModel()
-    private val adapter by unsafeLazy { HomeAdapter(homeModel) }
+    private val adapter by unsafeLazy {
+        HomeAdapter(
+            homeModel,
+            onAuthorizedCountClick = { switchToAppsTab() },
+            onStopClick = { showStopDialog() }
+        )
+    }
     private data class BottomBarPalette(
         val background: Int,
         val selectedIndicator: Int,
@@ -146,13 +153,13 @@ open class HomeActivity : AppBarActivity() {
         homeModel.serviceStatus.observe(this) {
             val status = it.data ?: return@observe
             adapter.updateData()
-            if (it.status == Status.SUCCESS && status.isRunning) {
-                ShizukuSettings.setLastLaunchMode(if (status.uid == 0) ShizukuSettings.LaunchMethod.ROOT else ShizukuSettings.LaunchMethod.ADB)
+            if (status.isRunning) {
+                appsModel.load(onlyCount = true)
             }
         }
         appsModel.grantedCount.observe(this) {
             if (it.status == Status.SUCCESS) {
-                adapter.updateData()
+                adapter.grantedCount = it.data ?: 0
             }
         }
 
@@ -170,6 +177,7 @@ open class HomeActivity : AppBarActivity() {
         }
         renderTab(Tab.HOME)
         composeTabState = Tab.HOME
+        updateToolbarTitle(Tab.HOME)
 
         Shizuku.addBinderReceivedListenerSticky(binderReceivedListener)
         Shizuku.addBinderDeadListener(binderDeadListener)
@@ -221,7 +229,6 @@ open class HomeActivity : AppBarActivity() {
         menuInflater.inflate(R.menu.main, menu)
         val inHome = currentTab == Tab.HOME
         menu.findItem(R.id.action_settings)?.isVisible = false
-        menu.findItem(R.id.action_stop)?.isVisible = inHome
         menu.findItem(R.id.action_about)?.isVisible = inHome
         return true
     }
@@ -231,10 +238,15 @@ open class HomeActivity : AppBarActivity() {
             R.id.action_about -> {
                 val binding = AboutDialogBinding.inflate(LayoutInflater.from(this), null, false)
                 binding.sourceCode.movementMethod = LinkMovementMethod.getInstance()
-                binding.sourceCode.text = getString(
+                val sourceCode = getString(
                     R.string.about_view_source_code,
-                    "<b><a href=\"https://github.com/RikkaApps/Shizuku\">GitHub</a></b>"
-                ).toHtml()
+                    "<b><a href=\"https://github.com/MiToverG422/Shizuku-Next\">GitHub</a></b>"
+                )
+                val telegram = getString(
+                    R.string.about_join_telegram,
+                    "<b><a href=\"https://t.me/miaomiao114514\">@miaomiao114514</a></b>"
+                )
+                binding.sourceCode.text = "$sourceCode<br>$telegram".toHtml()
                 binding.icon.setImageBitmap(
                     AppIconCache.getOrLoadBitmap(
                         this,
@@ -249,28 +261,26 @@ open class HomeActivity : AppBarActivity() {
                     .show()
                 true
             }
-            R.id.action_stop -> {
-                if (!Shizuku.pingBinder()) {
-                    return true
-                }
-                MaterialAlertDialogBuilder(this)
-                    .setMessage(R.string.dialog_stop_message)
-                    .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int ->
-                        try {
-                            Shizuku.exit()
-                        } catch (_: Throwable) {
-                        }
-                    }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
-                true
-            }
             R.id.action_settings -> {
                 switchToTab(Tab.SETTINGS)
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun showStopDialog() {
+        if (!Shizuku.pingBinder()) return
+        MaterialAlertDialogBuilder(this)
+            .setMessage(R.string.dialog_stop_message)
+            .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int ->
+                try {
+                    Shizuku.exit()
+                } catch (_: Throwable) {
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun switchToTab(tab: Tab) {
@@ -281,7 +291,11 @@ open class HomeActivity : AppBarActivity() {
         ensureTabFragment(tab)
         invalidateOptionsMenu()
         renderTab(fromTab, tab, true)
-        supportActionBar?.title = getTabTitle(tab)
+        updateToolbarTitle(tab)
+    }
+
+    private fun switchToAppsTab() {
+        switchToTab(Tab.APPS)
     }
 
     private fun ensureTabFragment(tab: Tab) {
@@ -314,7 +328,12 @@ open class HomeActivity : AppBarActivity() {
 
     private fun renderTab(fromTab: Tab, toTab: Tab, animate: Boolean) {
         currentTab = toTab
-        val allViews = listOf(binding.list, binding.appsContainer, binding.settingsContainer, binding.quickshellContainer)
+        val allViews = listOf(
+            binding.list,
+            binding.appsContainer,
+            binding.settingsContainer,
+            binding.quickshellContainer
+        )
         allViews.forEach {
             it.animate().cancel()
             it.animate().setListener(null)
@@ -329,7 +348,7 @@ open class HomeActivity : AppBarActivity() {
                 it.visibility = View.GONE
             }
             toView.visibility = View.VISIBLE
-            supportActionBar?.title = getTabTitle(toTab)
+            updateToolbarTitle(toTab)
             invalidateOptionsMenu()
             return
         }
@@ -364,8 +383,12 @@ open class HomeActivity : AppBarActivity() {
             .setInterpolator(FastOutSlowInInterpolator())
             .start()
 
-        supportActionBar?.title = getTabTitle(toTab)
+        updateToolbarTitle(toTab)
         invalidateOptionsMenu()
+    }
+
+    private fun updateToolbarTitle(tab: Tab) {
+        setAppBarTitle(getTabTitle(tab))
     }
 
     private fun dp(value: Int): Int {
@@ -418,7 +441,7 @@ open class HomeActivity : AppBarActivity() {
             modifier = Modifier.fillMaxWidth(),
             containerColor = barBackground,
             tonalElevation = 0.dp,
-            windowInsets = WindowInsets(0, 0, 0, 0)
+            windowInsets = NavigationBarDefaults.windowInsets
         ) {
             Spacer(modifier = Modifier.width(6.dp))
             items.forEach { item ->

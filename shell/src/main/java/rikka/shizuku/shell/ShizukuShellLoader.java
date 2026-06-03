@@ -169,3 +169,4 @@ public class ShizukuShellLoader {
         System.exit(1);
     }
 }
+

@@ -16,6 +16,15 @@
     <string name="home_status_mode_unknown">UNKNOWN</string>
     <string name="home_status_version_pid_format">Version: %1$s | PID %2$s</string>
     <string name="home_status_runtime_format">T+%1$s</string>
+    <string name="home_version_info_app_label">Version</string>
+    <string name="home_version_info_version_format">%1$s (%2$d)</string>
+    <string name="home_version_info_android_label">Android version</string>
+    <string name="home_version_info_model_label">Model</string>
+    <string name="home_version_info_android_format">%1$s (API %2$d)</string>
+    <string name="home_version_info_model_format">%1$s</string>
+    <string name="home_authorized_count_title">Authorized</string>
+    <string name="home_authorized_count_summary">%1$d apps have been granted Shizuku permission</string>
+    <string name="home_stop_service_summary">Stop current service</string>
 
     <!-- Home - Adb -->
     <string name="home_adb_title"><![CDATA[Start by connecting to a computer]]></string>
@@ -79,6 +88,7 @@
     </plurals>
     <string name="home_app_management_view_authorized_apps"><![CDATA[Tap to manage authorized apps]]></string>
     <string name="home_app_management_empty">Apps that has requested or declared Shizuku will show here.</string>
+    <string name="app_management_empty_service_not_running">Start Shizuku to view and manage app permissions.</string>
 
     <!-- Home - Learn more -->
     <string name="home_learn_more_title">Learn Shizuku</string>
@@ -129,8 +139,6 @@ With %1$s, in any terminal app, you can connect to and interact with the shell r
     <string name="settings_service">Service</string>
     <string name="settings_startup_broadcast">Boot broadcast</string>
     <string name="settings_startup_broadcast_summary">Auto-start at boot through system broadcast</string>
-    <string name="settings_startup_accessibility">Accessibility auto-start</string>
-    <string name="settings_startup_accessibility_summary">Wake boot broadcast through accessibility service</string>
     <string name="settings_startup_script">Boot script</string>
     <string name="settings_startup_script_summary">Root permission required</string>
     <string name="settings_use_system_color">Use system theme color</string>
@@ -157,6 +165,7 @@ With %1$s, in any terminal app, you can connect to and interact with the shell r
     <!-- About -->
     <string name="action_about">About</string>
     <string name="about_view_source_code"><![CDATA[View source code at %s]]></string>
+    <string name="about_join_telegram"><![CDATA[Join Telegram channel at %s]]></string>
 
     <!-- Stop -->
     <string name="action_stop">Stop Shizuku</string>

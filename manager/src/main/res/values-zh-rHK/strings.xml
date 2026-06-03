@@ -16,6 +16,15 @@
     <string name="home_status_mode_unknown">未知</string>
     <string name="home_status_version_pid_format">版本：%1$s | PID %2$s</string>
     <string name="home_status_runtime_format">T+%1$s</string>
+    <string name="home_version_info_app_label">版本</string>
+    <string name="home_version_info_version_format">%1$s (%2$d)</string>
+    <string name="home_version_info_android_label">Android 版本</string>
+    <string name="home_version_info_model_label">型號</string>
+    <string name="home_version_info_android_format">%1$s (API %2$d)</string>
+    <string name="home_version_info_model_format">%1$s</string>
+    <string name="home_authorized_count_title">已授權</string>
+    <string name="home_authorized_count_summary">已授予 Shizuku 權限嘅應用程式：%1$d 個</string>
+    <string name="home_stop_service_summary">結束目前服務</string>
     <string name="home_root_button_start">啟動</string>
     <string name="home_root_button_restart">重新啟動</string>
     <string name="home_root_title">啟動 (針對已 Root 裝置)</string>
@@ -40,6 +49,7 @@
     <string name="dialog_requesting_legacy_button_open_shizuku">開啟 Shizuku</string>
     <string name="action_about">關於</string>
     <string name="about_view_source_code">在 %s 檢視原始碼</string>
+    <string name="about_join_telegram">加入 Telegram 頻道：%s</string>
     <string name="settings_title">設定</string>
     <string name="starting_root_shell" translatable="false">正在啟動 Root shell…</string>
     <string name="start_with_root_failed">未授予 Root 權限或是此裝置沒有 Root，因此無法啟動服務。</string>
@@ -112,8 +122,6 @@
     <string name="settings_service">服務</string>
     <string name="settings_startup_broadcast">開機廣播</string>
     <string name="settings_startup_broadcast_summary">透過系統廣播在開機時自動啟動</string>
-    <string name="settings_startup_accessibility">無障礙自啟</string>
-    <string name="settings_startup_accessibility_summary">透過無障礙喚醒開機廣播</string>
     <string name="settings_startup_script">開機腳本</string>
     <string name="settings_startup_script_summary">透過 Root 權限在開機時執行腳本自動啟動</string>
     <string name="grant_dialog_button_allow_always">一律允許</string>
@@ -157,6 +165,7 @@
     <string name="settings_use_system_color">使用系統主題色彩</string>
     <string name="adb_pairing_tutorial_content_finish">回到 Shizuku 並啟動 Shizuku。</string>
     <string name="home_app_management_empty">已要求或宣告 Shizuku 的應用程式將顯示在此處。</string>
+    <string name="app_management_empty_service_not_running">啟動 Shizuku 後即可查看同管理應用程式權限。</string>
     <string name="home_adb_is_limited_title">您需要進行額外的步驟</string>
     <string name="home_adb_is_limited_description">您的裝置製造商限制了 ADB 的權限，使用 Shizuku 的應用程式無法正常運作。
 \n

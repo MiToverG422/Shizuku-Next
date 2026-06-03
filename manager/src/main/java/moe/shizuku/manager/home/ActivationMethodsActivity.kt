@@ -18,7 +18,7 @@ class ActivationMethodsActivity : AppBarActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.apps_activity)
-        supportActionBar?.title = getString(R.string.activation_methods_title)
+        setAppBarTitle(getString(R.string.activation_methods_title))
 
         val recyclerView = findViewById<BorderRecyclerView>(android.R.id.list)
         recyclerView.fixEdgeEffect()

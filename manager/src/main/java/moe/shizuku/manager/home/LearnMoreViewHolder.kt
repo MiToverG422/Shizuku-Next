@@ -25,6 +25,6 @@ class LearnMoreViewHolder(binding: HomeLearnMoreBinding, root: View) : BaseViewH
     }
 
     override fun onBind() {
-        HomeCardShapeHelper.applyGroupedShape(itemView)
+        HomeCardShapeHelper.applyGroupedShape(itemView, firstCardAdapterPosition = 2)
     }
 }

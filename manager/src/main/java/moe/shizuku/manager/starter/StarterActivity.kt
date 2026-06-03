@@ -40,6 +40,10 @@ class StarterActivity : AppBarActivity() {
         )
     }
 
+    override fun useAppBarScrollingContent(): Boolean {
+        return false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -155,7 +159,9 @@ private class ViewModel(context: Context, root: Boolean, host: String?, port: In
                     postResult()
                 }
             }).submit {
-                if (it.code != 0) {
+                if (it.code == 0) {
+                    ShizukuSettings.setLastLaunchMode(ShizukuSettings.LaunchMethod.ROOT)
+                } else {
                     sb.append('\n').append("Send this to developer may help solve the problem.")
                     postResult()
                 }
@@ -185,6 +191,7 @@ private class ViewModel(context: Context, root: Boolean, host: String?, port: In
                     postResult()
                 }
                 close()
+                ShizukuSettings.setLastLaunchMode(ShizukuSettings.LaunchMethod.ADB)
             }.onFailure {
                 it.printStackTrace()
 

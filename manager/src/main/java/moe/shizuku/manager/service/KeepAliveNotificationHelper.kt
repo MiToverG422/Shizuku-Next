@@ -7,27 +7,67 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import moe.shizuku.manager.R
+import moe.shizuku.manager.ShizukuSettings
 import moe.shizuku.manager.home.HomeActivity
 import moe.shizuku.manager.utils.ShizukuPidResolver
+import rikka.shizuku.Shizuku
 
 object KeepAliveNotificationHelper {
 
     private const val CHANNEL_ID = "keep_alive"
     private const val NOTIFICATION_ID = 1003
+    private const val TICK_INTERVAL_MS = 1000L
+    private const val STATE_REFRESH_INTERVAL_MS = 30_000L
 
+    private val handler = Handler(Looper.getMainLooper())
     private var pid = -1
     private var pidSinceElapsed = 0L
     private var lastKnownPid = -1
+    private var lastStateRefreshElapsed = 0L
+    private var tickerContext: Context? = null
+    private var tickerRunning = false
+
+    private val tickerTask = object : Runnable {
+        override fun run() {
+            val context = tickerContext ?: return
+            if (!ShizukuSettings.getPreferences().getBoolean(ShizukuSettings.KEEP_ALIVE_ENABLED, false)) {
+                cancel(context)
+                return
+            }
+
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastStateRefreshElapsed >= STATE_REFRESH_INTERVAL_MS || pid <= 0) {
+                refreshState(context, Shizuku.pingBinder())
+            }
+            notify(context)
+            handler.postDelayed(this, TICK_INTERVAL_MS)
+        }
+    }
 
     fun update(context: Context, alive: Boolean) {
         ensureChannel(context)
-        val nm = context.getSystemService(NotificationManager::class.java)
-        nm.notify(NOTIFICATION_ID, buildNotification(context, alive))
+        refreshState(context.applicationContext, alive)
+        notify(context.applicationContext)
+        startTicker(context)
+    }
+
+    fun startTicker(context: Context) {
+        tickerContext = context.applicationContext
+        ensureChannel(tickerContext!!)
+        if (tickerRunning) return
+        tickerRunning = true
+        handler.removeCallbacks(tickerTask)
+        handler.post(tickerTask)
     }
 
     fun cancel(context: Context) {
+        tickerRunning = false
+        tickerContext = null
+        handler.removeCallbacks(tickerTask)
         context.getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
     }
 
@@ -43,10 +83,11 @@ object KeepAliveNotificationHelper {
         )
     }
 
-    private fun buildNotification(context: Context, alive: Boolean): Notification {
+    private fun refreshState(context: Context, alive: Boolean) {
         val processInfo = if (alive) ShizukuPidResolver.resolveProcessInfo(context) else null
         val latestPid = processInfo?.pid ?: -1
         val now = SystemClock.elapsedRealtime()
+        lastStateRefreshElapsed = now
 
         if (latestPid > 0) {
             if (latestPid != pid) {
@@ -63,7 +104,15 @@ object KeepAliveNotificationHelper {
             pidSinceElapsed = 0L
             lastKnownPid = -1
         }
+    }
 
+    private fun notify(context: Context) {
+        context.getSystemService(NotificationManager::class.java)
+            .notify(NOTIFICATION_ID, buildNotification(context))
+    }
+
+    private fun buildNotification(context: Context): Notification {
+        val now = SystemClock.elapsedRealtime()
         val displayPid = if (pid > 0) pid else lastKnownPid
         val title = if (displayPid > 0) {
             context.getString(R.string.keep_alive_notification_title_running)
@@ -87,14 +136,21 @@ object KeepAliveNotificationHelper {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        return Notification.Builder(context, CHANNEL_ID)
+        val builder = Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_system_icon)
             .setColor(context.getColor(R.color.notification))
             .setContentTitle(title)
             .setContentText(content)
             .setOngoing(true)
             .setContentIntent(openIntent)
-            .build()
+
+        if (displayPid > 0) {
+            builder.setShowWhen(false)
+        } else {
+            builder.setShowWhen(false)
+        }
+
+        return builder.build()
     }
 
     private fun formatDuration(elapsedMs: Long): String {

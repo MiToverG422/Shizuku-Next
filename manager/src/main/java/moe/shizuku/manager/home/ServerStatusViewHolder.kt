@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
 import moe.shizuku.manager.R
+import moe.shizuku.manager.ShizukuSettings
 import moe.shizuku.manager.databinding.HomeItemContainerBinding
 import moe.shizuku.manager.databinding.HomeServerStatusBinding
 import moe.shizuku.manager.model.ServiceStatus
@@ -86,11 +87,7 @@ class ServerStatusViewHolder(private val binding: HomeServerStatusBinding, root:
         }
         if (ok) {
             modeView.visibility = View.VISIBLE
-            modeView.text = when (status.uid) {
-                0 -> context.getString(R.string.home_status_mode_root)
-                2000 -> context.getString(R.string.home_status_mode_adb)
-                else -> context.getString(R.string.home_status_mode_unknown)
-            }
+            modeView.text = resolveModeText(context, status)
         } else {
             modeView.visibility = View.GONE
         }
@@ -131,6 +128,17 @@ class ServerStatusViewHolder(private val binding: HomeServerStatusBinding, root:
             summaryView.visibility = View.GONE
         } else {
             summaryView.visibility = View.VISIBLE
+        }
+    }
+
+    private fun resolveModeText(context: android.content.Context, status: ServiceStatus): String {
+        val lastLaunchMode = ShizukuSettings.getLastLaunchMode()
+        return when {
+            status.uid == 2000 -> context.getString(R.string.home_status_mode_adb)
+            lastLaunchMode == ShizukuSettings.LaunchMethod.ROOT -> context.getString(R.string.home_status_mode_root)
+            lastLaunchMode == ShizukuSettings.LaunchMethod.ADB -> context.getString(R.string.home_status_mode_adb)
+            status.uid == 0 -> context.getString(R.string.home_status_mode_root)
+            else -> context.getString(R.string.home_status_mode_unknown)
         }
     }
 

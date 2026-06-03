@@ -19,11 +19,23 @@ object ServiceStarter {
             else -> null
         }
 
-        var started = runSilentStart(primary)
-        if (!started && fallback != null) {
-            started = runSilentStart(fallback)
+        if (runSilentStart(primary)) {
+            rememberSuccessfulMode(primary)
+            return@withContext true
         }
-        started
+
+        if (fallback != null && runSilentStart(fallback)) {
+            rememberSuccessfulMode(fallback)
+            return@withContext true
+        }
+
+        false
+    }
+
+    private fun rememberSuccessfulMode(@ShizukuSettings.LaunchMethod mode: Int) {
+        if (mode != ShizukuSettings.LaunchMethod.UNKNOWN) {
+            ShizukuSettings.setLastLaunchMode(mode)
+        }
     }
 
     private fun runSilentStart(@ShizukuSettings.LaunchMethod mode: Int): Boolean {
@@ -58,4 +70,3 @@ object ServiceStarter {
         }
     }
 }
-

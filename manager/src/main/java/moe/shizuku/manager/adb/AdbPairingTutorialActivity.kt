@@ -25,6 +25,10 @@ class AdbPairingTutorialActivity : AppBarActivity() {
 
     private var notificationEnabled: Boolean = false
 
+    override fun useAppBarScrollingContent(): Boolean {
+        return false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val context = this

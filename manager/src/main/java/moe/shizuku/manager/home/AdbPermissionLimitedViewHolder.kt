@@ -25,6 +25,6 @@ class AdbPermissionLimitedViewHolder(binding: HomeExtraStepRequiredBinding, root
     }
 
     override fun onBind() {
-        HomeCardShapeHelper.applyGroupedShape(itemView)
+        HomeCardShapeHelper.applyGroupedShape(itemView, firstCardAdapterPosition = 2)
     }
 }

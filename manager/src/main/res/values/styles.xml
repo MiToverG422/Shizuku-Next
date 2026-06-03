@@ -144,4 +144,16 @@
         <item name="thumbIconTint">@color/switch_thumb_icon_tint</item>
     </style>
 
+    <style name="ShizukuNextAppBarExpandedTitle">
+        <item name="android:textColor">?android:textColorPrimary</item>
+        <item name="android:textSize">34sp</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <style name="ShizukuNextAppBarCollapsedTitle">
+        <item name="android:textColor">?android:textColorPrimary</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
 </resources>

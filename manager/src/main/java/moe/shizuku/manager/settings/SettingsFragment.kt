@@ -1,22 +1,19 @@
 package moe.shizuku.manager.settings
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
-import android.accessibilityservice.AccessibilityServiceInfo
-import android.view.accessibility.AccessibilityManager
+import android.content.pm.PackageManager
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.content.res.ColorStateList
-import android.graphics.Paint
-import android.graphics.RectF
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.*
 import androidx.recyclerview.widget.RecyclerView
@@ -43,10 +40,18 @@ import moe.shizuku.manager.ShizukuSettings.NIGHT_MODE as KEY_NIGHT_MODE
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                setKeepAliveEnabled(true)
+            } else {
+                setKeepAliveEnabled(false)
+            }
+        }
+
     private lateinit var languagePreference: ListPreference
     private lateinit var nightModePreference: IntegerSimpleMenuPreference
     private lateinit var startOnBootPreference: TwoStatePreference
-    private lateinit var startupAccessibilityPreference: TwoStatePreference
     private lateinit var startupScriptPreference: TwoStatePreference
     private lateinit var autoRestartInBackgroundPreference: TwoStatePreference
     private lateinit var keepAlivePreference: TwoStatePreference
@@ -64,7 +69,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
         languagePreference = findPreference(KEY_LANGUAGE)!!
         nightModePreference = findPreference(KEY_NIGHT_MODE)!!
         startOnBootPreference = findPreference(KEEP_START_ON_BOOT)!!
-        startupAccessibilityPreference = findPreference("startup_accessibility")!!
         startupScriptPreference = findPreference("startup_script")!!
         autoRestartInBackgroundPreference = findPreference(ShizukuSettings.AUTO_RESTART_IN_BACKGROUND)!!
         keepAlivePreference = findPreference(ShizukuSettings.KEEP_ALIVE_ENABLED)!!
@@ -75,11 +79,32 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val componentName = ComponentName(context.packageName, BootCompleteReceiver::class.java.name)
 
         fun syncStartupUi() {
-            val mode = ShizukuSettings.getPreferences()
-                .getString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.BROADCAST)
-                ?: ShizukuSettings.StartupMode.BROADCAST
+            val preferences = ShizukuSettings.getPreferences()
+            val startupEnabled = preferences.getBoolean(KEEP_START_ON_BOOT, false)
+            val rawMode = preferences
+                .getString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.NONE)
+                ?: ShizukuSettings.StartupMode.NONE
+            val mode = when (rawMode) {
+                ShizukuSettings.StartupMode.SCRIPT -> ShizukuSettings.StartupMode.SCRIPT
+                ShizukuSettings.StartupMode.BROADCAST -> ShizukuSettings.StartupMode.BROADCAST
+                else -> ShizukuSettings.StartupMode.NONE
+            }
+            if (!startupEnabled || mode == ShizukuSettings.StartupMode.NONE) {
+                if (startupEnabled || mode != ShizukuSettings.StartupMode.NONE) {
+                    preferences.edit()
+                        .putBoolean(KEEP_START_ON_BOOT, false)
+                        .putString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.NONE)
+                        .apply()
+                }
+                startOnBootPreference.isChecked = false
+                startupScriptPreference.isChecked = false
+                context.packageManager.setComponentEnabled(componentName, false)
+                return
+            }
+            if (mode != rawMode) {
+                preferences.edit().putString(ShizukuSettings.STARTUP_MODE, mode).apply()
+            }
             startOnBootPreference.isChecked = mode == ShizukuSettings.StartupMode.BROADCAST
-            startupAccessibilityPreference.isChecked = mode == ShizukuSettings.StartupMode.ACCESSIBILITY
             startupScriptPreference.isChecked = mode == ShizukuSettings.StartupMode.SCRIPT
             context.packageManager.setComponentEnabled(componentName, true)
         }
@@ -92,6 +117,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
             syncStartupUi()
         }
 
+        fun disableStartupMode() {
+            ShizukuSettings.getPreferences().edit()
+                .putString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.NONE)
+                .putBoolean(KEEP_START_ON_BOOT, false)
+                .apply()
+            syncStartupUi()
+        }
+
         syncStartupUi()
 
         startOnBootPreference.onPreferenceChangeListener =
@@ -100,31 +133,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 if (enabled) {
                     setStartupMode(ShizukuSettings.StartupMode.BROADCAST)
                 } else if (startOnBootPreference.isChecked) {
-                    ShizukuSettings.getPreferences().edit().putBoolean(KEEP_START_ON_BOOT, false).apply()
-                    startOnBootPreference.isChecked = false
-                }
-                true
-            }
-
-        startupAccessibilityPreference.onPreferenceChangeListener =
-            Preference.OnPreferenceChangeListener { _, newValue ->
-                val enabled = newValue as? Boolean ?: return@OnPreferenceChangeListener false
-                if (enabled) {
-                    setStartupMode(ShizukuSettings.StartupMode.ACCESSIBILITY)
-                    val accessibilityManager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
-                    val enabledServices = accessibilityManager?.getEnabledAccessibilityServiceList(
-                        AccessibilityServiceInfo.FEEDBACK_ALL_MASK
-                    ).orEmpty()
-                    val selfServiceId = "${context.packageName}/${moe.shizuku.manager.receiver.StartupAccessibilityService::class.java.name}"
-                    val isServiceEnabled = enabledServices.any { it.id == selfServiceId }
-                    if (!isServiceEnabled) {
-                        runCatching {
-                            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                        }
-                    }
-                } else if (startupAccessibilityPreference.isChecked) {
-                    ShizukuSettings.getPreferences().edit().putBoolean(KEEP_START_ON_BOOT, false).apply()
-                    startupAccessibilityPreference.isChecked = false
+                    disableStartupMode()
                 }
                 true
             }
@@ -135,8 +144,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 if (enabled) {
                     setStartupMode(ShizukuSettings.StartupMode.SCRIPT)
                 } else if (startupScriptPreference.isChecked) {
-                    ShizukuSettings.getPreferences().edit().putBoolean(KEEP_START_ON_BOOT, false).apply()
-                    startupScriptPreference.isChecked = false
+                    disableStartupMode()
                 }
                 true
             }
@@ -150,13 +158,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
             Preference.OnPreferenceChangeListener { _, newValue ->
                 val enabled = newValue as? Boolean ?: return@OnPreferenceChangeListener false
                 if (enabled) {
-                    KeepAliveWorker.schedule(context)
-                    KeepAliveWorker.runNow(context)
+                    if (hasNotificationPermission()) {
+                        setKeepAliveEnabled(true)
+                    } else {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
                 } else {
-                    KeepAliveWorker.cancel(context)
-                    KeepAliveNotificationHelper.cancel(context)
+                    setKeepAliveEnabled(false)
                 }
-                true
+                false
             }
 
         languagePreference.onPreferenceChangeListener =
@@ -215,6 +225,27 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
+    private fun hasNotificationPermission(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                requireContext().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun setKeepAliveEnabled(enabled: Boolean) {
+        val context = requireContext()
+        ShizukuSettings.getPreferences().edit()
+            .putBoolean(ShizukuSettings.KEEP_ALIVE_ENABLED, enabled)
+            .apply()
+        keepAlivePreference.isChecked = enabled
+        if (enabled) {
+            KeepAliveNotificationHelper.startTicker(context)
+            KeepAliveWorker.schedule(context)
+            KeepAliveWorker.runNow(context)
+        } else {
+            KeepAliveWorker.cancel(context)
+            KeepAliveNotificationHelper.cancel(context)
+        }
+    }
+
     override fun onCreateRecyclerView(
         inflater: LayoutInflater,
         parent: ViewGroup,
@@ -260,27 +291,21 @@ class SettingsFragment : PreferenceFragmentCompat() {
         private val middleRadius = 2f * resources.displayMetrics.density
         private val cardColor = requireContext().getColor(R.color.home_card_background_color)
         private val rippleColor by lazy { resolveRippleColor() }
-        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = cardColor }
-        private val rectF = RectF()
-
         override fun onDraw(c: android.graphics.Canvas, parent: RecyclerView, state: RecyclerView.State) {
-            applyCardBackgrounds(c, parent)
+            applyCardBackgrounds(parent)
         }
 
-        override fun onDrawOver(c: android.graphics.Canvas, parent: RecyclerView, state: RecyclerView.State) {
-            applyCardBackgrounds(c, parent)
-        }
-
-        private fun applyCardBackgrounds(c: android.graphics.Canvas, parent: RecyclerView) {
+        private fun applyCardBackgrounds(parent: RecyclerView) {
             val adapter = parent.adapter as? PreferenceGroupAdapter ?: return
             for (i in 0 until parent.childCount) {
                 val child = parent.getChildAt(i)
                 val pos = parent.getChildAdapterPosition(child)
                 if (pos == RecyclerView.NO_POSITION) continue
                 val pref = adapter.getItem(pos)
-                if (pref is PreferenceCategory) continue
-                val prevIsCard = pos > 0 && adapter.getItem(pos - 1) !is PreferenceCategory
-                val nextIsCard = pos < adapter.itemCount - 1 && adapter.getItem(pos + 1) !is PreferenceCategory
+                if (!isCardPreference(pref)) continue
+                child.foreground = null
+                val prevIsCard = pos > 0 && isCardPreference(adapter.getItem(pos - 1))
+                val nextIsCard = pos < adapter.itemCount - 1 && isCardPreference(adapter.getItem(pos + 1))
                 val topRadius = if (prevIsCard) middleRadius else cornerRadius
                 val bottomRadius = if (nextIsCard) middleRadius else cornerRadius
                 val shapeCode = when {
@@ -289,25 +314,17 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     !nextIsCard -> 2
                     else -> 3
                 }
-                rectF.set(
-                    child.left.toFloat(),
-                    child.top.toFloat(),
-                    child.right.toFloat(),
-                    child.bottom.toFloat()
-                )
-                val radii = floatArrayOf(
-                    topRadius, topRadius,
-                    topRadius, topRadius,
-                    bottomRadius, bottomRadius,
-                    bottomRadius, bottomRadius
-                )
-                val path = android.graphics.Path().apply { addRoundRect(rectF, radii, android.graphics.Path.Direction.CW) }
-                c.drawPath(path, paint)
-                // Keep ripple only as foreground interaction; transparent base avoids card disappearing after press.
-                val needResetBackground = (child.getTag(R.id.tag_card_shape_code) as? Int) != shapeCode || child.background !is RippleDrawable
+                // Put both the card color and ripple on the item background so press feedback
+                // uses the same rounded mask as the visible card.
+                val appliedBackground = child.getTag(R.id.tag_card_background_drawable)
+                val needResetBackground =
+                    (child.getTag(R.id.tag_card_shape_code) as? Int) != shapeCode ||
+                            child.background !== appliedBackground
                 if (needResetBackground) {
+                    val background = createCardBackground(topRadius, bottomRadius, rippleColor, cardColor)
                     child.setTag(R.id.tag_card_shape_code, shapeCode)
-                    child.background = createCardBackground(topRadius, bottomRadius, rippleColor, android.graphics.Color.TRANSPARENT)
+                    child.setTag(R.id.tag_card_background_drawable, background)
+                    child.background = background
                 }
             }
         }
@@ -330,24 +347,40 @@ class SettingsFragment : PreferenceFragmentCompat() {
             }
         }
 
+        private fun isCardPreference(preference: Preference?): Boolean {
+            if (preference == null) return false
+            return preference !is PreferenceCategory
+        }
+
         private fun resolveRippleColor(): Int {
             val out = TypedValue()
             requireContext().theme.resolveAttribute(com.google.android.material.R.attr.colorControlHighlight, out, true)
             return out.data
         }
 
-        private fun createCardBackground(topRadius: Float, bottomRadius: Float, rippleColor: Int, cardColor: Int): RippleDrawable {
+        private fun createCardBackground(
+            topRadius: Float,
+            bottomRadius: Float,
+            rippleColor: Int,
+            cardColor: Int
+        ): RippleDrawable {
+            val radii = floatArrayOf(
+                topRadius, topRadius,
+                topRadius, topRadius,
+                bottomRadius, bottomRadius,
+                bottomRadius, bottomRadius
+            )
             val content = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadii = floatArrayOf(
-                    topRadius, topRadius,
-                    topRadius, topRadius,
-                    bottomRadius, bottomRadius,
-                    bottomRadius, bottomRadius
-                )
+                cornerRadii = radii
                 setColor(cardColor)
             }
-            return RippleDrawable(ColorStateList.valueOf(rippleColor), content, content.constantState?.newDrawable())
+            val mask = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadii = radii
+                setColor(android.graphics.Color.WHITE)
+            }
+            return RippleDrawable(ColorStateList.valueOf(rippleColor), content, mask)
         }
     }
 

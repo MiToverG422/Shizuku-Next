@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged"
-    android:accessibilityFeedbackType="feedbackGeneric"
-    android:canRetrieveWindowContent="false"
-    android:description="@string/settings_startup_accessibility_summary"
-    android:notificationTimeout="100"
-    android:settingsActivity="moe.shizuku.manager.settings.SettingsActivity" />

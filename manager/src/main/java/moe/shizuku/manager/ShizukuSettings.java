@@ -80,8 +80,8 @@ public class ShizukuSettings {
     }
 
     public static final class StartupMode {
+        public static final String NONE = "none";
         public static final String BROADCAST = "broadcast";
-        public static final String ACCESSIBILITY = "accessibility";
         public static final String SCRIPT = "script";
     }
 

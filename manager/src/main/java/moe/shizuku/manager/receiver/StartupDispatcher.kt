@@ -29,10 +29,9 @@ import java.util.concurrent.TimeUnit
 internal object StartupDispatcher {
 
     const val SOURCE_BROADCAST = "broadcast"
-    const val SOURCE_ACCESSIBILITY = "accessibility"
 
     fun startIfNeeded(context: Context, source: String) {
-        if (!ShizukuSettings.getPreferences().getBoolean(KEEP_START_ON_BOOT, true)) return
+        if (!ShizukuSettings.getPreferences().getBoolean(KEEP_START_ON_BOOT, false)) return
         if (UserHandleCompat.myUserId() > 0) return
 
         if (source == SOURCE_BROADCAST &&
@@ -45,11 +44,11 @@ internal object StartupDispatcher {
         if (Shizuku.pingBinder()) return
 
         val mode = ShizukuSettings.getPreferences()
-            .getString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.BROADCAST)
-            ?: ShizukuSettings.StartupMode.BROADCAST
+            .getString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.NONE)
+            ?: ShizukuSettings.StartupMode.NONE
 
+        if (mode == ShizukuSettings.StartupMode.NONE) return
         if (mode == ShizukuSettings.StartupMode.BROADCAST && source != SOURCE_BROADCAST) return
-        if (mode == ShizukuSettings.StartupMode.ACCESSIBILITY && source != SOURCE_ACCESSIBILITY) return
 
         if (mode == ShizukuSettings.StartupMode.SCRIPT) {
             rootStart()
