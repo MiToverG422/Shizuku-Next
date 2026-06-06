@@ -142,6 +142,11 @@ object KeepAliveNotificationHelper {
             .setContentTitle(title)
             .setContentText(content)
             .setOngoing(true)
+            .setAutoCancel(false)
+            .setOnlyAlertOnce(true)
+            .setLocalOnly(true)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setContentIntent(openIntent)
 
         if (displayPid > 0) {

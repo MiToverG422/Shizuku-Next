@@ -153,6 +153,17 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <service
+            android:name=".service.KeepAliveTaskService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false" />
+
+        <receiver
+            android:name=".service.KeepAliveRestoreReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
         <receiver
             android:name=".receiver.BootCompleteReceiver"
             android:directBootAware="true"

@@ -28,6 +28,7 @@ import moe.shizuku.manager.ktx.setComponentEnabled
 import moe.shizuku.manager.ktx.toHtml
 import moe.shizuku.manager.receiver.BootCompleteReceiver
 import moe.shizuku.manager.service.KeepAliveNotificationHelper
+import moe.shizuku.manager.service.KeepAliveTaskService
 import moe.shizuku.manager.service.KeepAliveWorker
 import moe.shizuku.manager.utils.CustomTabsHelper
 import rikka.material.app.LocaleDelegate
@@ -238,9 +239,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
         keepAlivePreference.isChecked = enabled
         if (enabled) {
             KeepAliveNotificationHelper.startTicker(context)
+            KeepAliveTaskService.start(context)
             KeepAliveWorker.schedule(context)
             KeepAliveWorker.runNow(context)
         } else {
+            KeepAliveTaskService.stop(context)
             KeepAliveWorker.cancel(context)
             KeepAliveNotificationHelper.cancel(context)
         }

@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import moe.shizuku.manager.ktx.logd
 import moe.shizuku.manager.service.KeepAliveNotificationHelper
+import moe.shizuku.manager.service.KeepAliveTaskService
 import moe.shizuku.manager.service.KeepAliveWorker
 import moe.shizuku.manager.utils.ServiceStarter
 import org.lsposed.hiddenapibypass.HiddenApiBypass
@@ -121,6 +122,7 @@ class ShizukuApplication : Application(), Configuration.Provider {
         })
         if (ShizukuSettings.getPreferences().getBoolean(ShizukuSettings.KEEP_ALIVE_ENABLED, false)) {
             KeepAliveNotificationHelper.startTicker(this)
+            KeepAliveTaskService.start(this)
             KeepAliveWorker.schedule(this)
             KeepAliveWorker.runNow(this)
         }
