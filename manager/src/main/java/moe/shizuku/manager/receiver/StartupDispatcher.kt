@@ -31,11 +31,19 @@ internal object StartupDispatcher {
     const val SOURCE_BROADCAST = "broadcast"
 
     fun startIfNeeded(context: Context, source: String) {
-        if (!ShizukuSettings.getPreferences().getBoolean(KEEP_START_ON_BOOT, false)) return
+        val preferences = ShizukuSettings.getPreferences()
+        val mode = preferences
+            .getString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.NONE)
+            ?: ShizukuSettings.StartupMode.NONE
+        if (mode == ShizukuSettings.StartupMode.NONE) return
+        if (!preferences.getBoolean(KEEP_START_ON_BOOT, false)) {
+            preferences.edit().putBoolean(KEEP_START_ON_BOOT, true).apply()
+        }
+
         if (UserHandleCompat.myUserId() > 0) return
 
         if (source == SOURCE_BROADCAST &&
-            ShizukuSettings.getPreferences().getBoolean(ShizukuSettings.KEEP_ALIVE_ENABLED, false)
+            preferences.getBoolean(ShizukuSettings.KEEP_ALIVE_ENABLED, false)
         ) {
             KeepAliveWorker.schedule(context)
             KeepAliveWorker.runNow(context)
@@ -43,11 +51,6 @@ internal object StartupDispatcher {
 
         if (Shizuku.pingBinder()) return
 
-        val mode = ShizukuSettings.getPreferences()
-            .getString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.NONE)
-            ?: ShizukuSettings.StartupMode.NONE
-
-        if (mode == ShizukuSettings.StartupMode.NONE) return
         if (mode == ShizukuSettings.StartupMode.BROADCAST && source != SOURCE_BROADCAST) return
 
         if (mode == ShizukuSettings.StartupMode.SCRIPT) {

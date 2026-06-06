@@ -23,7 +23,6 @@ import moe.shizuku.manager.ShizukuSettings
 import moe.shizuku.manager.ShizukuSettings.KEEP_START_ON_BOOT
 import moe.shizuku.manager.app.ThemeHelper
 import moe.shizuku.manager.app.ThemeHelper.KEY_USE_SYSTEM_COLOR
-import moe.shizuku.manager.ktx.isComponentEnabled
 import moe.shizuku.manager.ktx.setComponentEnabled
 import moe.shizuku.manager.ktx.toHtml
 import moe.shizuku.manager.receiver.BootCompleteReceiver
@@ -81,7 +80,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         fun syncStartupUi() {
             val preferences = ShizukuSettings.getPreferences()
-            val startupEnabled = preferences.getBoolean(KEEP_START_ON_BOOT, false)
             val rawMode = preferences
                 .getString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.NONE)
                 ?: ShizukuSettings.StartupMode.NONE
@@ -90,8 +88,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 ShizukuSettings.StartupMode.BROADCAST -> ShizukuSettings.StartupMode.BROADCAST
                 else -> ShizukuSettings.StartupMode.NONE
             }
-            if (!startupEnabled || mode == ShizukuSettings.StartupMode.NONE) {
-                if (startupEnabled || mode != ShizukuSettings.StartupMode.NONE) {
+            if (mode == ShizukuSettings.StartupMode.NONE) {
+                if (preferences.getBoolean(KEEP_START_ON_BOOT, false) || mode != rawMode) {
                     preferences.edit()
                         .putBoolean(KEEP_START_ON_BOOT, false)
                         .putString(ShizukuSettings.STARTUP_MODE, ShizukuSettings.StartupMode.NONE)
@@ -102,8 +100,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 context.packageManager.setComponentEnabled(componentName, false)
                 return
             }
-            if (mode != rawMode) {
-                preferences.edit().putString(ShizukuSettings.STARTUP_MODE, mode).apply()
+            if (!preferences.getBoolean(KEEP_START_ON_BOOT, false) || mode != rawMode) {
+                preferences.edit()
+                    .putBoolean(KEEP_START_ON_BOOT, true)
+                    .putString(ShizukuSettings.STARTUP_MODE, mode)
+                    .apply()
             }
             startOnBootPreference.isChecked = mode == ShizukuSettings.StartupMode.BROADCAST
             startupScriptPreference.isChecked = mode == ShizukuSettings.StartupMode.SCRIPT
