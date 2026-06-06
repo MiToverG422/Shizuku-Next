@@ -1,17 +1,23 @@
 package moe.shizuku.manager.settings
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.Toast
 import android.content.res.ColorStateList
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
@@ -55,6 +61,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private lateinit var startupScriptPreference: TwoStatePreference
     private lateinit var autoRestartInBackgroundPreference: TwoStatePreference
     private lateinit var keepAlivePreference: TwoStatePreference
+    private lateinit var allowBackgroundRunningPreference: Preference
     private lateinit var translationPreference: Preference
     private lateinit var translationContributorsPreference: Preference
     private lateinit var useSystemColorPreference: TwoStatePreference
@@ -72,6 +79,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         startupScriptPreference = findPreference("startup_script")!!
         autoRestartInBackgroundPreference = findPreference(ShizukuSettings.AUTO_RESTART_IN_BACKGROUND)!!
         keepAlivePreference = findPreference(ShizukuSettings.KEEP_ALIVE_ENABLED)!!
+        allowBackgroundRunningPreference = findPreference("allow_background_running")!!
         translationPreference = findPreference("translation")!!
         translationContributorsPreference = findPreference("translation_contributors")!!
         useSystemColorPreference = findPreference(KEY_USE_SYSTEM_COLOR)!!
@@ -171,6 +179,12 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 false
             }
 
+        allowBackgroundRunningPreference.setOnPreferenceClickListener {
+            openBackgroundRunningSettings()
+            true
+        }
+        updateBackgroundRunningPreferenceState()
+
         languagePreference.onPreferenceChangeListener =
             Preference.OnPreferenceChangeListener { _: Preference?, newValue: Any ->
                 if (newValue is String) {
@@ -199,6 +213,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 true
             }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            useSystemColorPreference.isChecked = ThemeHelper.isUsingSystemColor()
             useSystemColorPreference.onPreferenceChangeListener =
                 Preference.OnPreferenceChangeListener { _: Preference?, value: Any? ->
                     if (value is Boolean) {
@@ -227,6 +242,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::allowBackgroundRunningPreference.isInitialized) {
+            updateBackgroundRunningPreferenceState()
+        }
+    }
+
     private fun hasNotificationPermission(): Boolean {
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 requireContext().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
@@ -247,6 +269,59 @@ class SettingsFragment : PreferenceFragmentCompat() {
             KeepAliveTaskService.stop(context)
             KeepAliveWorker.cancel(context)
             KeepAliveNotificationHelper.cancel(context)
+        }
+    }
+
+    private fun openBackgroundRunningSettings() {
+        val context = requireContext()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!isBackgroundRunningAllowed()) {
+                val requestIntent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+                if (startActivitySafely(requestIntent)) return
+            } else {
+                updateBackgroundRunningPreferenceState()
+                Toast.makeText(
+                    context,
+                    R.string.settings_allow_background_running_already_allowed,
+                    Toast.LENGTH_SHORT
+                ).show()
+                return
+            }
+        }
+
+        val appSettingsIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:${context.packageName}")
+        }
+        if (!startActivitySafely(appSettingsIntent)) {
+            Toast.makeText(
+                context,
+                R.string.settings_allow_background_running_unavailable,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun updateBackgroundRunningPreferenceState() {
+        allowBackgroundRunningPreference.isEnabled = !isBackgroundRunningAllowed()
+    }
+
+    private fun isBackgroundRunningAllowed(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true
+        }
+        val context = requireContext()
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        return powerManager.isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+    private fun startActivitySafely(intent: Intent): Boolean {
+        return try {
+            startActivity(intent)
+            true
+        } catch (_: ActivityNotFoundException) {
+            false
         }
     }
 

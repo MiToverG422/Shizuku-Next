@@ -115,6 +115,10 @@
     <string name="settings_start_on_boot">在開機時啟動 (Root)</string>
     <string name="settings_keep_alive">顯示狀態通知</string>
     <string name="settings_keep_alive_summary">顯示 Shizuku 常駐狀態通知</string>
+    <string name="settings_allow_background_running">允許背景執行</string>
+    <string name="settings_allow_background_running_summary">允許 Shizuku-Next 喺背景持續執行，可能會增加少量耗電</string>
+    <string name="settings_allow_background_running_already_allowed">已允許背景執行</string>
+    <string name="settings_allow_background_running_unavailable">無法開啟系統背景執行設定</string>
     <string name="settings_auto_start_on_app_open">開啟 App 時自動啟動</string>
     <string name="settings_auto_start_on_app_open_summary">啟動 Shizuku-Next 時將嘗試自動啟動服務</string>
     <string name="settings_auto_restart_in_background">背景掉線自動重啟</string>

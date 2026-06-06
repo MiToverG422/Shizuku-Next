@@ -113,6 +113,10 @@
     <string name="settings_start_on_boot">开机启动（root）</string>
     <string name="settings_keep_alive">显示状态通知</string>
     <string name="settings_keep_alive_summary">显示 Shizuku 常驻状态通知</string>
+    <string name="settings_allow_background_running">允许后台运行</string>
+    <string name="settings_allow_background_running_summary">允许 Shizuku-Next 在背景持续运行，可能会增加一些耗电</string>
+    <string name="settings_allow_background_running_already_allowed">已允许后台运行</string>
+    <string name="settings_allow_background_running_unavailable">无法打开系统后台运行设置</string>
     <string name="settings_auto_start_on_app_open">打开 App 时自动激活</string>
     <string name="settings_auto_start_on_app_open_summary">启动 Shizuku-Next 时将尝试自动激活服务</string>
     <string name="settings_auto_restart_in_background">后台掉线自动重启</string>

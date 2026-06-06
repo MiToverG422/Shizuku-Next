@@ -36,6 +36,11 @@
             android:summary="@string/settings_keep_alive_summary"
             android:title="@string/settings_keep_alive" />
 
+        <Preference
+            android:key="allow_background_running"
+            android:summary="@string/settings_allow_background_running_summary"
+            android:title="@string/settings_allow_background_running" />
+
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/settings_language">
@@ -69,6 +74,7 @@
             android:title="@string/dark_theme" />
 
         <rikka.material.preference.MaterialSwitchPreference
+            android:defaultValue="true"
             android:key="use_system_color"
             android:title="@string/settings_use_system_color" />
 
