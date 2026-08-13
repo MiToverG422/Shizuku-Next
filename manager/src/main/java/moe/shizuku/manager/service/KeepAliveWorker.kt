@@ -1,6 +1,8 @@
 package moe.shizuku.manager.service
 
 import android.content.Context
+import android.os.Build
+import android.os.UserManager
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -26,6 +28,8 @@ class KeepAliveWorker(
         private const val UNIQUE_IMMEDIATE_WORK = "keep_alive_immediate_work"
 
         fun schedule(context: Context) {
+            if (!isUserUnlocked(context)) return
+
             val request = PeriodicWorkRequestBuilder<KeepAliveWorker>(15, TimeUnit.MINUTES)
                 .setConstraints(Constraints.NONE)
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
@@ -38,6 +42,8 @@ class KeepAliveWorker(
         }
 
         fun runNow(context: Context) {
+            if (!isUserUnlocked(context)) return
+
             val request = OneTimeWorkRequestBuilder<KeepAliveWorker>().build()
             WorkManager.getInstance(context).enqueueUniqueWork(
                 UNIQUE_IMMEDIATE_WORK,
@@ -47,9 +53,16 @@ class KeepAliveWorker(
         }
 
         fun cancel(context: Context) {
+            if (!isUserUnlocked(context)) return
+
             val wm = WorkManager.getInstance(context)
             wm.cancelUniqueWork(UNIQUE_PERIODIC_WORK)
             wm.cancelUniqueWork(UNIQUE_IMMEDIATE_WORK)
+        }
+
+        private fun isUserUnlocked(context: Context): Boolean {
+            return Build.VERSION.SDK_INT < Build.VERSION_CODES.N ||
+                context.getSystemService(UserManager::class.java)?.isUserUnlocked == true
         }
     }
 
