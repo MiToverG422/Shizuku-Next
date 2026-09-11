@@ -93,21 +93,28 @@ materialThemeBuilder {
     generateTextColors = true
 }
 
-def collapseReleaseResourceNames = task('collapseReleaseResourceNames').doLast {
-    def aapt2 = Paths.get(project.android.sdkDirectory.path, 'build-tools', project.android.buildToolsVersion, 'aapt2')
+abstract class CollapseResourceNamesTask extends DefaultTask {
+    @javax.inject.Inject
+    abstract org.gradle.process.ExecOperations getExecOperations()
+}
+
+def collapseReleaseResourceNames = tasks.register('collapseReleaseResourceNames', CollapseResourceNamesTask) {
+  doLast {
+    def aapt2Name = System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT).contains('windows') ? 'aapt2.exe' : 'aapt2'
+    def aapt2 = Paths.get(project.android.sdkDirectory.path, 'build-tools', project.android.buildToolsVersion, aapt2Name)
     def zip = Paths.get(project.buildDir.path, 'intermediates',
             'optimized_processed_res', 'release', 'optimizeReleaseResources', 'resources-release-optimize.ap_')
     def optimized = new File("${zip}.opt")
-    def cmd = exec {
+    def cmd = execOperations.exec {
         commandLine aapt2, 'optimize', '--collapse-resource-names',
                 '--resources-config-path', 'aapt2-resources.cfg',
                 '-o', optimized, zip
         ignoreExitValue false
     }
     if (cmd.exitValue == 0) {
-        delete(zip)
-        optimized.renameTo("$zip")
+        java.nio.file.Files.move(optimized.toPath(), zip, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
     }
+  }
 }
 
 afterEvaluate {

@@ -42,6 +42,9 @@ confirmation dialog now live.
 - Kotlin/Compose compiler 2.4.10, Compose BOM 2026.08.00.
 - Material 3 1.5.0-alpha27 and MaterialKolor 5.0.1, matching the reference.
 - AGP 9.2.1, Gradle 9.4.1, JDK 21, compile SDK 37.
+- Non-final resource IDs are required for AGP 9's optimized Release resource shrinking.
+  R8 rules only suppress missing optional WindowManager vendor interfaces; shrinking
+  stays enabled and device-provided extension stubs are not bundled into the APK.
 - Runtime compatibility is unchanged: min SDK 24, target SDK 36.
 - Legacy AGP DSL/Kotlin opt-outs remain for the existing Rikka plugins. Root plugin
   declarations keep AGP and Kotlin on a shared classloader.
@@ -54,7 +57,7 @@ confirmation dialog now live.
 Commands (JDK 21):
 
 ```
-gradlew.bat :manager:testDebugUnitTest --tests "*Material*Test" :manager:assembleDebug
+gradlew.bat :manager:testDebugUnitTest --tests "*Material*Test" --tests "*AdbPairingServiceTest" :manager:assemble
 ```
 
 Fifteen Material tests cover type/icon tokens, floating navigation selection, 200% font scale,
