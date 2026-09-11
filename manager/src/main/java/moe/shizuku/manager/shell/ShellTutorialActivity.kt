@@ -3,19 +3,23 @@ package moe.shizuku.manager.shell
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
-import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import moe.shizuku.manager.Helps
 import moe.shizuku.manager.R
-import moe.shizuku.manager.app.AppBarActivity
-import moe.shizuku.manager.databinding.TerminalTutorialActivityBinding
-import moe.shizuku.manager.ktx.toHtml
+import moe.shizuku.manager.app.AppActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import moe.shizuku.manager.ui.component.*
+import moe.shizuku.manager.ui.theme.ShizukuTheme
 import moe.shizuku.manager.utils.CustomTabsHelper
-import rikka.html.text.HtmlCompat
-import rikka.insets.*
-import kotlin.math.roundToInt
 
-class ShellTutorialActivity : AppBarActivity() {
+class ShellTutorialActivity : AppActivity() {
 
     companion object {
 
@@ -58,56 +62,53 @@ class ShellTutorialActivity : AppBarActivity() {
             writeToDocument(DEX_NAME)
         }
 
-    override fun useAppBarScrollingContent(): Boolean {
-        return false
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val binding = TerminalTutorialActivityBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        binding.content.apply {
-            setInitialPadding(
-                initialPaddingLeft,
-                initialPaddingTop + (resources.displayMetrics.density * 8).roundToInt(),
-                initialPaddingRight,
-                initialPaddingBottom
-            )
-        }
-
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        binding.apply {
-            val shName = "<font face=\"monospace\">$SH_NAME</font>"
-            val dexName = "<font face=\"monospace\">$DEX_NAME</font>"
-
-            summary.text =
-                getString(R.string.rish_description, shName).toHtml(HtmlCompat.FROM_HTML_OPTION_TRIM_WHITESPACE)
-
-            text1.text = getString(R.string.terminal_tutorial_1, shName, dexName).toHtml()
-
-            text2.text = getString(R.string.terminal_tutorial_2, shName).toHtml()
-            summary2.text = getString(
-                R.string.terminal_tutorial_2_description,
-                "Termux",
-                "<font face=\"monospace\">PKG</font>",
-                "<font face=\"monospace\">com.termux</font>",
-                "<font face=\"monospace\">com.termux</font>",
-            ).toHtml()
-
-            text3.text = getString(
-                R.string.terminal_tutorial_3,
-                "<font face=\"monospace\">sh $SH_NAME</font>",
-            ).toHtml()
-            summary3.text = getString(
-                R.string.terminal_tutorial_3_description,
-                shName, "<font face=\"monospace\">PATH</font>"
-            ).toHtml()
-
-            button1.setOnClickListener { openDocumentsTree.launch(null) }
-            button2.setOnClickListener { v: View -> CustomTabsHelper.launchUrlOrCopy(v.context, Helps.RISH.get()) }
+        enableEdgeToEdge()
+        setContent {
+            ShizukuTheme {
+                MaterialPage(stringResource(R.string.home_terminal_title), { finish() }) {
+                    LazyColumn(contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(13.dp)) {
+                        item {
+                            TonalCard { Column(Modifier.padding(16.dp)) {
+                                HtmlText(getString(R.string.rish_description, SH_NAME))
+                            } }
+                        }
+                        item {
+                            Column(verticalArrangement = Arrangement.spacedBy(UiMetrics.SegmentGap)) {
+                                SegmentedCard(0, 3) {
+                                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        HtmlText(getString(R.string.terminal_tutorial_1, SH_NAME, DEX_NAME))
+                                        HtmlText(getString(R.string.terminal_tutorial_1_description))
+                                        Button(onClick = { openDocumentsTree.launch(null) }) {
+                                            Text(stringResource(R.string.terminal_export_files))
+                                        }
+                                    }
+                                }
+                                SegmentedCard(1, 3) {
+                                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        HtmlText(getString(R.string.terminal_tutorial_2, SH_NAME))
+                                        HtmlText(getString(R.string.terminal_tutorial_2_description,
+                                            "Termux", "PKG", "com.termux", "com.termux"))
+                                    }
+                                }
+                                SegmentedCard(2, 3) {
+                                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        HtmlText(getString(R.string.terminal_tutorial_3, "sh $SH_NAME"))
+                                        HtmlText(getString(R.string.terminal_tutorial_3_description, SH_NAME, "PATH"))
+                                    }
+                                }
+                            }
+                        }
+                        item {
+                            MaterialRow(stringResource(R.string.home_learn_more_title),
+                                icon = R.drawable.ic_outline_open_in_new_24,
+                                onClick = { CustomTabsHelper.launchUrlOrCopy(this@ShellTutorialActivity, Helps.RISH.get()) })
+                        }
+                    }
+                }
+            }
         }
     }
 }

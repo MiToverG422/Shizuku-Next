@@ -4,12 +4,15 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import androidx.activity.compose.setContent
+import androidx.compose.material3.*
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.DialogProperties
+import moe.shizuku.manager.ui.component.HtmlText
+import moe.shizuku.manager.ui.theme.ShizukuTheme
 import moe.shizuku.manager.MainActivity
 import moe.shizuku.manager.R
 import moe.shizuku.manager.app.AppActivity
-import moe.shizuku.manager.ktx.toHtml
-import rikka.html.text.HtmlCompat
 
 class LegacyIsNotSupportedActivity : AppActivity() {
 
@@ -50,32 +53,31 @@ class LegacyIsNotSupportedActivity : AppActivity() {
         }
 
         val v3Support = ai.metaData?.getBoolean("moe.shizuku.client.V3_SUPPORT") == true
-        if (v3Support) {
-            MaterialAlertDialogBuilder(this)
-                    .setTitle(getString(R.string.dialog_requesting_legacy_title, label))
-                    .setMessage(getString(R.string.dialog_requesting_legacy_message, label).toHtml(HtmlCompat.FROM_HTML_OPTION_TRIM_WHITESPACE))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .setNeutralButton(R.string.dialog_requesting_legacy_button_open_shizuku) { _, _ ->
-                        startActivity(Intent(this, MainActivity::class.java)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                    }
-                    .setOnDismissListener {
-                        setResult(RESULT_ERROR)
-                        finish()
-                    }
-                    .setCancelable(false)
-                    .show()
-        } else {
-            MaterialAlertDialogBuilder(this)
-                    .setTitle(getString(R.string.dialog_legacy_not_support_title, label))
-                    .setMessage(getString(R.string.dialog_legacy_not_support_message, label).toHtml(HtmlCompat.FROM_HTML_OPTION_TRIM_WHITESPACE))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .setOnDismissListener {
-                        setResult(RESULT_ERROR)
-                        finish()
-                    }
-                    .setCancelable(false)
-                    .show()
+        fun close() {
+            setResult(RESULT_ERROR)
+            finish()
+        }
+        setContent {
+            ShizukuTheme {
+                AlertDialog(
+                    onDismissRequest = {},
+                    properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+                    title = { Text(getString(if (v3Support) R.string.dialog_requesting_legacy_title
+                        else R.string.dialog_legacy_not_support_title, label)) },
+                    text = { HtmlText(getString(if (v3Support) R.string.dialog_requesting_legacy_message
+                        else R.string.dialog_legacy_not_support_message, android.text.TextUtils.htmlEncode(label.toString()))) },
+                    confirmButton = { TextButton(onClick = { close() }) { Text(stringResource(android.R.string.ok)) } },
+                    dismissButton = if (v3Support) {
+                        {
+                            TextButton(onClick = {
+                                startActivity(Intent(this@LegacyIsNotSupportedActivity, MainActivity::class.java)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                close()
+                            }) { Text(stringResource(R.string.dialog_requesting_legacy_button_open_shizuku)) }
+                        }
+                    } else null,
+                )
+            }
         }
     }
 }

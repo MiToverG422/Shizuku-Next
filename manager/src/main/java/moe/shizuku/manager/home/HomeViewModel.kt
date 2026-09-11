@@ -8,6 +8,10 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import moe.shizuku.manager.BuildConfig
 import moe.shizuku.manager.Manifest
 import moe.shizuku.manager.model.ServiceStatus
@@ -17,6 +21,8 @@ import rikka.lifecycle.Resource
 import rikka.shizuku.Shizuku
 
 class HomeViewModel : ViewModel() {
+    private var reloadJob: Job? = null
+    private val reloadMutex = Mutex()
 
     private val _serviceStatus = MutableLiveData<Resource<ServiceStatus>>()
     val serviceStatus = _serviceStatus as LiveData<Resource<ServiceStatus>>
@@ -68,13 +74,16 @@ class HomeViewModel : ViewModel() {
     }
 
     fun reload() {
-        viewModelScope.launch(Dispatchers.IO) {
+        reloadJob?.cancel()
+        reloadJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                val status = load()
+                val status = reloadMutex.withLock { load() }
+                ensureActive()
                 _serviceStatus.postValue(Resource.success(status))
             } catch (e: CancellationException) {
-
+                throw e
             } catch (e: Throwable) {
+                ensureActive()
                 _serviceStatus.postValue(Resource.error(e, ServiceStatus()))
             }
         }

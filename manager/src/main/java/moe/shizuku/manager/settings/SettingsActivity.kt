@@ -1,26 +1,25 @@
 package moe.shizuku.manager.settings
 
-import android.content.res.Resources
 import android.os.Bundle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.ui.res.stringResource
+import androidx.fragment.compose.AndroidFragment
 import moe.shizuku.manager.R
-import moe.shizuku.manager.app.AppBarFragmentActivity
+import moe.shizuku.manager.app.AppActivity
+import moe.shizuku.manager.ui.component.MaterialPage
+import moe.shizuku.manager.ui.theme.ShizukuTheme
 
-class SettingsActivity : AppBarFragmentActivity() {
-
-    override fun onApplyUserThemeResource(theme: Resources.Theme, isDecorView: Boolean) {
-        super.onApplyUserThemeResource(theme, isDecorView)
-        theme.applyStyle(R.style.ThemeOverlay_Rikka_Material3_Preference, true)
-    }
-
+class SettingsActivity : AppActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container, SettingsFragment())
-                    .commit()
+        enableEdgeToEdge()
+        setContent {
+            ShizukuTheme {
+                MaterialPage(stringResource(R.string.settings_title), onBack = { finish() }) {
+                    AndroidFragment<SettingsFragment>()
+                }
+            }
         }
     }
 }

@@ -1,482 +1,216 @@
-﻿package moe.shizuku.manager.home
+package moe.shizuku.manager.home
 
-import android.content.DialogInterface
-import android.content.res.Resources
+import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.os.Process
-import android.text.method.LinkMovementMethod
-import android.util.TypedValue
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.view.WindowManager
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.interpolator.view.animation.FastOutSlowInInterpolator
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.color.MaterialColors
-import kotlinx.coroutines.CoroutineScope
+import androidx.fragment.compose.AndroidFragment
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import moe.shizuku.manager.R
 import moe.shizuku.manager.ShizukuSettings
-import moe.shizuku.manager.app.AppBarActivity
-import moe.shizuku.manager.databinding.AboutDialogBinding
-import moe.shizuku.manager.databinding.HomeActivityBinding
-import moe.shizuku.manager.ktx.toHtml
+import moe.shizuku.manager.app.AppActivity
 import moe.shizuku.manager.management.AppsPageFragment
 import moe.shizuku.manager.management.appsViewModel
+import moe.shizuku.manager.model.ServiceStatus
 import moe.shizuku.manager.settings.SettingsFragment
 import moe.shizuku.manager.shell.QuickShellFragment
-import moe.shizuku.manager.utils.AppIconCache
+import moe.shizuku.manager.ui.theme.ShizukuTheme
+import moe.shizuku.manager.ui.component.*
 import moe.shizuku.manager.utils.ServiceStarter
-import rikka.core.ktx.unsafeLazy
-import rikka.lifecycle.Status
 import rikka.lifecycle.viewModels
-import rikka.recyclerview.addEdgeSpacing
-import rikka.recyclerview.addItemSpacing
-import rikka.recyclerview.fixEdgeEffect
 import rikka.shizuku.Shizuku
 
-open class HomeActivity : AppBarActivity() {
-
-    private enum class Tab {
-        HOME, APPS, SETTINGS, QUICKSHELL
+open class HomeActivity : AppActivity() {
+    private enum class Tab(val label: Int, val icon: Int, val selectedIcon: Int = icon) {
+        HOME(R.string.nav_home, R.drawable.ic_home_outline_24, R.drawable.ic_home_24dp),
+        APPS(R.string.nav_apps, R.drawable.ic_apps_24dp),
+        QUICKSHELL(R.string.nav_quickshell, R.drawable.ic_terminal_24),
+        SETTINGS(R.string.nav_settings, R.drawable.ic_settings_outline_24dp, R.drawable.ic_action_settings_24dp)
     }
-
-    private var currentTab = Tab.HOME
-    private var composeTabState by mutableStateOf(Tab.HOME)
-    private lateinit var binding: HomeActivityBinding
-    private var autoStartTried = false
-    private var autoStartInFlight = false
-    private var appsFragmentCreated = false
-    private var settingsFragmentCreated = false
-    private var quickShellFragmentCreated = false
-
-    private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
-        checkServerStatus()
-        if (appsFragmentCreated && currentTab == Tab.APPS) {
-            appsModel.load()
-        }
-    }
-
-    private val binderDeadListener = Shizuku.OnBinderDeadListener {
-        checkServerStatus()
-    }
-
+    private var currentTab by mutableStateOf(Tab.HOME)
+    private var status by mutableStateOf(ServiceStatus())
+    private var aboutDialogVisible by mutableStateOf(false)
     private val homeModel by viewModels { HomeViewModel() }
     private val appsModel by appsViewModel()
-    private val adapter by unsafeLazy {
-        HomeAdapter(
-            homeModel,
-            onAuthorizedCountClick = { switchToAppsTab() },
-            onStopClick = { showStopDialog() }
-        )
+    private var autoStartTried = false
+    private var autoStartInFlight = false
+    private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
+        homeModel.reload()
+        appsModel.load()
     }
-    private data class BottomBarPalette(
-        val background: Int,
-        val selectedIndicator: Int,
-        val selectedContent: Int,
-        val unselectedContent: Int
-    )
-
-    override fun onApplyUserThemeResource(theme: Resources.Theme, isDecorView: Boolean) {
-        super.onApplyUserThemeResource(theme, isDecorView)
-        theme.applyStyle(R.style.ThemeOverlay_Rikka_Material3_Preference, true)
+    private val binderDeadListener = Shizuku.OnBinderDeadListener {
+        homeModel.reload()
+        appsModel.load()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
-
-        binding = HomeActivityBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        val bottomBarPalette = BottomBarPalette(
-            background = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorSurfaceContainer, 0),
-            selectedIndicator = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorSecondaryContainer, 0),
-            selectedContent = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSecondaryContainer, 0),
-            unselectedContent = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurfaceVariant, 0)
-        )
-        binding.bottomNavCompose.setContent {
-            KernelStyleBottomBar(
-                selected = composeTabState,
-                onSelect = { switchToTab(it) },
-                palette = bottomBarPalette
-            )
-        }
-
+        enableEdgeToEdge()
+        window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        currentTab = savedInstanceState?.getString("selected_tab")
+            ?.let { name -> Tab.entries.find { it.name == name } } ?: Tab.HOME
         homeModel.serviceStatus.observe(this) {
-            val status = it.data ?: return@observe
-            adapter.updateData()
-            if (status.isRunning) {
-                appsModel.load(onlyCount = true)
-            }
+            status = it.data ?: ServiceStatus()
         }
-        appsModel.grantedCount.observe(this) {
-            if (it.status == Status.SUCCESS) {
-                adapter.grantedCount = it.data ?: 0
-            }
-        }
-
-        val recyclerView = binding.list
-        recyclerView.adapter = adapter
-        recyclerView.fixEdgeEffect()
-        recyclerView.setHasFixedSize(true)
-        recyclerView.itemAnimator = null
-        recyclerView.addItemSpacing(top = 1f, bottom = 1f, unit = TypedValue.COMPLEX_UNIT_DIP)
-        recyclerView.addEdgeSpacing(top = 1f, bottom = 1f, left = 16f, right = 16f, unit = TypedValue.COMPLEX_UNIT_DIP)
-        if (savedInstanceState != null) {
-            settingsFragmentCreated = supportFragmentManager.findFragmentById(R.id.settings_container) != null
-            appsFragmentCreated = supportFragmentManager.findFragmentById(R.id.apps_container) != null
-            quickShellFragmentCreated = supportFragmentManager.findFragmentById(R.id.quickshell_container) != null
-        }
-        renderTab(Tab.HOME)
-        composeTabState = Tab.HOME
-        updateToolbarTitle(Tab.HOME)
-
+        setContent { ShizukuTheme { MainScreen(); HomeDialogs() } }
         Shizuku.addBinderReceivedListenerSticky(binderReceivedListener)
         Shizuku.addBinderDeadListener(binderDeadListener)
     }
 
-    override fun onResume() {
-        super.onResume()
-        maybeAutoStartService()
-        checkServerStatus()
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+    @Composable
+    private fun MainScreen() {
+        val homeListState = rememberLazyListState()
+        val pager = rememberPagerState(initialPage = currentTab.ordinal) { Tab.entries.size }
+        var visitedPages by rememberSaveable { mutableIntStateOf(1 shl currentTab.ordinal) }
+        val navigation = rememberMaterialPagerNavigation(pager)
+        val selectedTab = Tab.entries[navigation.selectedPage]
+        val destinations = remember { Tab.entries.map { NavigationDestination(it.label, it.icon, it.selectedIcon) } }
+        fun select(tab: Tab) {
+            // Compose every page on the route before starting the continuous scroll.
+            for (page in minOf(pager.currentPage, tab.ordinal)..maxOf(pager.currentPage, tab.ordinal)) {
+                visitedPages = visitedPages or (1 shl page)
+            }
+            navigation.select(tab.ordinal)
+        }
+        BackHandler(selectedTab != Tab.HOME) { select(Tab.HOME) }
+        BoxWithConstraints(Modifier.fillMaxSize().imePadding()) {
+            val useRail = maxWidth >= 600.dp
+            val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val bottomSpace = if (useRail) navInset else
+                UiMetrics.FloatingBarHeight + if (navInset > 0.dp) navInset + 8.dp else 16.dp
+            Row(Modifier.fillMaxSize()) {
+                if (useRail) MaterialNavigationRail(destinations, selectedTab.ordinal, { select(Tab.entries[it]) })
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    CompositionLocalProvider(LocalPageBottomPadding provides bottomSpace) {
+                        HorizontalPager(
+                            state = pager, beyondViewportPageCount = 3, overscrollEffect = null,
+                            modifier = Modifier.fillMaxSize(),
+                        ) { page ->
+                            val tab = Tab.entries[page]
+                            // Each page owns its app bar and collapse state, as in KernelSU-Mi.
+                            // Swiping moves both the title and content; switching tabs never jumps
+                            // a shared toolbar back to its expanded state.
+                            val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+                            Scaffold(
+                                modifier = Modifier.fillMaxSize().then(
+                                    if (tab == Tab.HOME) Modifier.nestedScroll(scroll.nestedScrollConnection) else Modifier),
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
+                                topBar = {
+                                    MaterialTopAppBar(
+                                        title = stringResource(if (tab == Tab.HOME) R.string.app_name else tab.label),
+                                        scrollBehavior = scroll,
+                                        actions = {
+                                            if (tab == Tab.HOME) IconButton(onClick = { showAbout() }) {
+                                                Icon(painterResource(R.drawable.ic_action_about_24dp), stringResource(R.string.action_about))
+                                            }
+                                        },
+                                    )
+                                },
+                            ) { padding ->
+                                CompositionLocalProvider(LocalPageScrollConnection provides scroll.nestedScrollConnection) {
+                                    Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
+                                        if (visitedPages and (1 shl page) != 0 || page == navigation.selectedPage || page == pager.targetPage) {
+                                            when (tab) {
+                                                Tab.HOME -> HomeScreen(status, homeListState,
+                                                    active = selectedTab == Tab.HOME,
+                                                    onActivate = { startActivity(Intent(this@HomeActivity, ActivationMethodsActivity::class.java)) })
+                                                Tab.APPS -> AndroidFragment<AppsPageFragment>(Modifier.fillMaxSize())
+                                                Tab.QUICKSHELL -> AndroidFragment<QuickShellFragment>(Modifier.fillMaxSize())
+                                                Tab.SETTINGS -> AndroidFragment<SettingsFragment>(Modifier.fillMaxSize())
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (!useRail) FloatingNavigationBar(
+                        destinations = destinations,
+                        selectedIndex = selectedTab.ordinal,
+                        onSelect = { select(Tab.entries[it]) },
+                        modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
+                    )
+                }
+            }
+        }
+        LaunchedEffect(pager.settledPage) { currentTab = Tab.entries[pager.settledPage] }
+        LaunchedEffect(pager.targetPage) { visitedPages = visitedPages or (1 shl pager.targetPage) }
     }
 
-    private fun checkServerStatus() {
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("selected_tab", currentTab.name)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onResume() {
+        super.onResume()
         homeModel.reload()
+        maybeAutoStartService()
     }
 
     private fun maybeAutoStartService() {
-        if (autoStartTried) return
-        if (autoStartInFlight) return
-        if (Shizuku.pingBinder()) return
+        if (autoStartTried || autoStartInFlight || Shizuku.pingBinder()) return
         if (!ShizukuSettings.getPreferences().getBoolean(ShizukuSettings.AUTO_START_ON_APP_OPEN, false)) return
-
         autoStartTried = true
         autoStartInFlight = true
-        CoroutineScope(Dispatchers.IO).launch {
-            val started = ServiceStarter.tryStartByLastMode()
-            if (started) {
-                repeat(8) {
-                    if (Shizuku.pingBinder()) return@repeat
-                    delay(300L)
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) { ServiceStarter.tryStartByLastMode() }
+                for (attempt in 0 until 8) {
+                    if (Shizuku.pingBinder()) break
+                    delay(300)
                 }
-            }
-            Handler(Looper.getMainLooper()).post {
+                if (!Shizuku.pingBinder()) autoStartTried = false
+                homeModel.reload()
+            } finally {
                 autoStartInFlight = false
-                if (!Shizuku.pingBinder()) {
-                    // Allow retry on next resume if still not started.
-                    autoStartTried = false
-                }
             }
         }
+    }
+
+    private fun showAbout() { aboutDialogVisible = true }
+
+    @Composable
+    private fun HomeDialogs() {
+        if (aboutDialogVisible) AlertDialog(
+            onDismissRequest = { aboutDialogVisible = false },
+            icon = { Icon(painterResource(R.drawable.ic_action_about_24dp), null) },
+            title = { Text(stringResource(R.string.app_name)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(13.dp)) {
+                    Text(moe.shizuku.manager.BuildConfig.VERSION_NAME, style = MaterialTheme.typography.bodyMedium)
+                    HtmlText(getString(R.string.about_view_source_code,
+                        "<a href='https://github.com/MiToverG422/Shizuku-Next'>GitHub</a>"))
+                    HtmlText(getString(R.string.about_join_telegram,
+                        "<a href='https://t.me/miaomiao114514'>@miaomiao114514</a>"))
+                }
+            },
+            confirmButton = { TextButton(onClick = { aboutDialogVisible = false }) { Text(stringResource(android.R.string.ok)) } },
+        )
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         Shizuku.removeBinderReceivedListener(binderReceivedListener)
         Shizuku.removeBinderDeadListener(binderDeadListener)
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.main, menu)
-        val inHome = currentTab == Tab.HOME
-        menu.findItem(R.id.action_settings)?.isVisible = false
-        menu.findItem(R.id.action_about)?.isVisible = inHome
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_about -> {
-                val binding = AboutDialogBinding.inflate(LayoutInflater.from(this), null, false)
-                binding.sourceCode.movementMethod = LinkMovementMethod.getInstance()
-                val sourceCode = getString(
-                    R.string.about_view_source_code,
-                    "<b><a href=\"https://github.com/MiToverG422/Shizuku-Next\">GitHub</a></b>"
-                )
-                val telegram = getString(
-                    R.string.about_join_telegram,
-                    "<b><a href=\"https://t.me/miaomiao114514\">@miaomiao114514</a></b>"
-                )
-                binding.sourceCode.text = "$sourceCode<br>$telegram".toHtml()
-                binding.icon.setImageBitmap(
-                    AppIconCache.getOrLoadBitmap(
-                        this,
-                        applicationInfo,
-                        Process.myUid() / 100000,
-                        resources.getDimensionPixelOffset(R.dimen.default_app_icon_size)
-                    )
-                )
-                binding.versionName.text = packageManager.getPackageInfo(packageName, 0).versionName
-                MaterialAlertDialogBuilder(this)
-                    .setView(binding.root)
-                    .show()
-                true
-            }
-            R.id.action_settings -> {
-                switchToTab(Tab.SETTINGS)
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
-    private fun showStopDialog() {
-        if (!Shizuku.pingBinder()) return
-        MaterialAlertDialogBuilder(this)
-            .setMessage(R.string.dialog_stop_message)
-            .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int ->
-                try {
-                    Shizuku.exit()
-                } catch (_: Throwable) {
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
-
-    private fun switchToTab(tab: Tab) {
-        if (currentTab == tab) return
-        val fromTab = currentTab
-        currentTab = tab
-        composeTabState = tab
-        ensureTabFragment(tab)
-        invalidateOptionsMenu()
-        renderTab(fromTab, tab, true)
-        updateToolbarTitle(tab)
-    }
-
-    private fun switchToAppsTab() {
-        switchToTab(Tab.APPS)
-    }
-
-    private fun ensureTabFragment(tab: Tab) {
-        when (tab) {
-            Tab.APPS -> if (!appsFragmentCreated) {
-                supportFragmentManager.beginTransaction()
-                    .replace(R.id.apps_container, AppsPageFragment())
-                    .commitNowAllowingStateLoss()
-                appsFragmentCreated = true
-            }
-            Tab.SETTINGS -> if (!settingsFragmentCreated) {
-                supportFragmentManager.beginTransaction()
-                    .replace(R.id.settings_container, SettingsFragment())
-                    .commitNowAllowingStateLoss()
-                settingsFragmentCreated = true
-            }
-            Tab.QUICKSHELL -> if (!quickShellFragmentCreated) {
-                supportFragmentManager.beginTransaction()
-                    .replace(R.id.quickshell_container, QuickShellFragment())
-                    .commitNowAllowingStateLoss()
-                quickShellFragmentCreated = true
-            }
-            Tab.HOME -> Unit
-        }
-    }
-
-    private fun renderTab(tab: Tab) {
-        renderTab(tab, tab, false)
-    }
-
-    private fun renderTab(fromTab: Tab, toTab: Tab, animate: Boolean) {
-        currentTab = toTab
-        val allViews = listOf(
-            binding.list,
-            binding.appsContainer,
-            binding.settingsContainer,
-            binding.quickshellContainer
-        )
-        allViews.forEach {
-            it.animate().cancel()
-            it.animate().setListener(null)
-        }
-
-        val fromView = getTabView(fromTab)
-        val toView = getTabView(toTab)
-        if (!animate || fromView === toView) {
-            allViews.forEach {
-                it.translationX = 0f
-                it.alpha = 1f
-                it.visibility = View.GONE
-            }
-            toView.visibility = View.VISIBLE
-            updateToolbarTitle(toTab)
-            invalidateOptionsMenu()
-            return
-        }
-
-        val forward = tabOrder(toTab) > tabOrder(fromTab)
-        val width = binding.root.width.toFloat().takeIf { it > 0f } ?: dp(320).toFloat()
-        val startOffset = if (forward) width * 0.06f else -width * 0.06f
-        val endOffset = -startOffset * 0.5f
-
-        allViews.filter { it !== fromView && it !== toView }.forEach { it.visibility = View.GONE }
-
-        toView.visibility = View.VISIBLE
-        toView.translationX = startOffset
-        toView.alpha = 0f
-
-        fromView.animate()
-            .translationX(endOffset)
-            .alpha(0f)
-            .setDuration(130L)
-            .setInterpolator(FastOutSlowInInterpolator())
-            .withEndAction {
-                fromView.visibility = View.GONE
-                fromView.translationX = 0f
-                fromView.alpha = 1f
-            }
-            .start()
-
-        toView.animate()
-            .translationX(0f)
-            .alpha(1f)
-            .setDuration(150L)
-            .setInterpolator(FastOutSlowInInterpolator())
-            .start()
-
-        updateToolbarTitle(toTab)
-        invalidateOptionsMenu()
-    }
-
-    private fun updateToolbarTitle(tab: Tab) {
-        setAppBarTitle(getTabTitle(tab))
-    }
-
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
-    }
-
-    private fun getTabView(tab: Tab): View {
-        return when (tab) {
-            Tab.HOME -> binding.list
-            Tab.APPS -> binding.appsContainer
-            Tab.SETTINGS -> binding.settingsContainer
-            Tab.QUICKSHELL -> binding.quickshellContainer
-        }
-    }
-
-    private fun getTabTitle(tab: Tab): String {
-        return when (tab) {
-            Tab.HOME -> getString(R.string.app_name)
-            Tab.APPS -> getString(R.string.nav_apps)
-            Tab.SETTINGS -> getString(R.string.settings_title)
-            Tab.QUICKSHELL -> getString(R.string.quickshell_title)
-        }
-    }
-
-    private fun tabOrder(tab: Tab): Int {
-        return when (tab) {
-            Tab.HOME -> 0
-            Tab.APPS -> 1
-            Tab.QUICKSHELL -> 2
-            Tab.SETTINGS -> 3
-        }
-    }
-
-    @Composable
-    private fun KernelStyleBottomBar(selected: Tab, onSelect: (Tab) -> Unit, palette: BottomBarPalette) {
-        data class Item(val tab: Tab, val label: Int, val icon: Int)
-        val items = listOf(
-            Item(Tab.HOME, R.string.nav_home, R.drawable.ic_home_24dp),
-            Item(Tab.APPS, R.string.nav_apps, R.drawable.ic_apps_24dp),
-            Item(Tab.QUICKSHELL, R.string.nav_quickshell, R.drawable.ic_terminal_24),
-            Item(Tab.SETTINGS, R.string.nav_settings, R.drawable.ic_settings_outline_24dp)
-        )
-
-        val barBackground = Color(palette.background)
-        val selectedIndicator = Color(palette.selectedIndicator)
-        val selectedContent = Color(palette.selectedContent)
-        val unselectedContent = Color(palette.unselectedContent)
-
-        NavigationBar(
-            modifier = Modifier.fillMaxWidth(),
-            containerColor = barBackground,
-            tonalElevation = 0.dp,
-            windowInsets = NavigationBarDefaults.windowInsets
-        ) {
-            Spacer(modifier = Modifier.width(6.dp))
-            items.forEach { item ->
-                val isSelected = selected == item.tab
-                NavigationBarItem(
-                    selected = isSelected,
-                    onClick = { onSelect(item.tab) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(item.icon),
-                            contentDescription = getString(item.label)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = getString(item.label),
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    alwaysShowLabel = false,
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = selectedIndicator,
-                        selectedIconColor = selectedContent,
-                        selectedTextColor = selectedContent,
-                        unselectedIconColor = unselectedContent,
-                        unselectedTextColor = unselectedContent
-                    )
-                )
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-        }
+        super.onDestroy()
     }
 }

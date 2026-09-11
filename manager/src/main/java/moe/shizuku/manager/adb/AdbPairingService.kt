@@ -7,11 +7,11 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.Observer
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import moe.shizuku.manager.R
 import moe.shizuku.manager.ShizukuSettings
 import rikka.core.ktx.unsafeLazy
@@ -35,6 +35,7 @@ class AdbPairingService : Service() {
         private const val replyAction = "reply"
         private const val remoteInputResultKey = "paring_code"
         private const val portKey = "paring_code"
+        internal const val SEARCH_TIMEOUT_MS = 150_000L
 
         fun startIntent(context: Context): Intent {
             return Intent(context, AdbPairingService::class.java).setAction(startAction)
@@ -50,16 +51,20 @@ class AdbPairingService : Service() {
     }
 
     private var adbMdns: AdbMdns? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var pairingJob: Job? = null
+    private var ending = false
+    private val timeout = Runnable { finishSession() }
 
     private val observer = Observer<Int> { port ->
         Log.i(tag, "Pairing service port: $port")
-        if (port <= 0) return@Observer
-
-        // Since the service could be killed before user finishing input,
-        // we need to put the port into Intent
-        val notification = createInputNotification(port)
-
-        getSystemService(NotificationManager::class.java).notify(notificationId, notification)
+        mainHandler.post {
+            if (port > 0 && !ending) {
+                // Ignore late discovery callbacks after timeout/destruction.
+                getSystemService(NotificationManager::class.java).notify(notificationId, createInputNotification(port))
+            }
+        }
     }
 
     private var started = false
@@ -80,6 +85,10 @@ class AdbPairingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (ending) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         val notification = when (intent?.action) {
             startAction -> {
                 onStart()
@@ -94,11 +103,11 @@ class AdbPairingService : Service() {
                 }
             }
             stopAction -> {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
+                finishSession()
                 null
             }
             else -> {
+                finishSession()
                 return START_NOT_STICKY
             }
         }
@@ -106,16 +115,31 @@ class AdbPairingService : Service() {
             try {
                 startForeground(notificationId, notification,
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST)
+                mainHandler.removeCallbacks(timeout)
+                mainHandler.postDelayed(timeout, SEARCH_TIMEOUT_MS)
+                if (notification === searchingNotification) startSearch()
             } catch (e: Throwable) {
                 Log.e(tag, "startForeground failed", e)
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    && e is ForegroundServiceStartNotAllowedException) {
-                    getSystemService(NotificationManager::class.java).notify(notificationId, notification)
-                }
+                finishSession()
             }
         }
-        return START_REDELIVER_INTENT
+        return START_NOT_STICKY
+    }
+
+    override fun onTimeout(startId: Int) = finishSession()
+
+    override fun onTimeout(startId: Int, fgsType: Int) = finishSession()
+
+    private fun finishSession() {
+        if (ending) return
+        ending = true
+        mainHandler.removeCallbacks(timeout)
+        pairingJob?.cancel()
+        // Stop the foreground service immediately; never wait for network cleanup.
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+        stopSearch()
     }
 
     private fun startSearch() {
@@ -127,43 +151,39 @@ class AdbPairingService : Service() {
     private fun stopSearch() {
         if (!started) return
         started = false
-        adbMdns?.stop()
+        runCatching { adbMdns?.stop() }.onFailure { Log.w(tag, "Discovery cleanup failed", it) }
+        adbMdns = null
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        ending = true
+        mainHandler.removeCallbacks(timeout)
+        serviceScope.cancel()
         stopSearch()
+        super.onDestroy()
     }
 
-    private fun onStart(): Notification {
-        startSearch()
-        return searchingNotification
-    }
+    private fun onStart(): Notification = searchingNotification
 
     private fun onInput(code: String, port: Int): Notification {
-        GlobalScope.launch(Dispatchers.IO) {
-            val host = "127.0.0.1"
-
-            val key = try {
-                AdbKey(PreferenceAdbKeyStore(ShizukuSettings.getPreferences()), "shizuku")
-            } catch (e: Throwable) {
-                e.printStackTrace()
-                return@launch
+        if (pairingJob?.isActive == true) return workingNotification
+        pairingJob = serviceScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val key = AdbKey(PreferenceAdbKeyStore(ShizukuSettings.getPreferences()), "shizuku")
+                    AdbPairingClient("127.0.0.1", port, code, key).use { it.start() }
+                }
             }
-
-            AdbPairingClient(host, port, code, key).runCatching {
-                start()
-            }.onFailure {
-                handleResult(false, it)
-            }.onSuccess {
-                handleResult(it, null)
-            }
+            if (!ending) handleResult(result.getOrDefault(false), result.exceptionOrNull())
         }
 
         return workingNotification
     }
 
     private fun handleResult(success: Boolean, exception: Throwable?) {
+        ending = true
+        mainHandler.removeCallbacks(timeout)
+        stopSearch()
         stopForeground(STOP_FOREGROUND_REMOVE)
 
         val title: String

@@ -12,6 +12,10 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import moe.shizuku.manager.authorization.AuthorizationManager
 import rikka.lifecycle.Resource
 import rikka.lifecycle.activityViewModels
@@ -24,6 +28,8 @@ fun ComponentActivity.appsViewModel() = viewModels { AppsViewModel(this) }
 fun Fragment.appsViewModel() = activityViewModels { AppsViewModel(requireContext()) }
 
 class AppsViewModel(context: Context) : ViewModel() {
+    private var loadJob: Job? = null
+    private val loadMutex = Mutex()
 
     private val _packages = MutableLiveData<Resource<List<PackageInfo>>>()
     val packages = _packages as LiveData<Resource<List<PackageInfo>>>
@@ -32,19 +38,26 @@ class AppsViewModel(context: Context) : ViewModel() {
     val grantedCount = _grantedCount as LiveData<Resource<Int>>
 
     fun load(onlyCount: Boolean = false) {
-        viewModelScope.launch(Dispatchers.IO) {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                val list: MutableList<PackageInfo> = ArrayList()
-                var count = 0
-                for (pi in AuthorizationManager.getPackages()) {
-                    list.add(pi)
-                    if (AuthorizationManager.granted(pi.packageName, pi.applicationInfo!!.uid)) count++
+                loadMutex.withLock {
+                    val list: MutableList<PackageInfo> = ArrayList()
+                    var count = 0
+                    for (pi in AuthorizationManager.getPackages()) {
+                        ensureActive()
+                        val ai = pi.applicationInfo ?: continue
+                        list.add(pi)
+                        if (AuthorizationManager.granted(pi.packageName, ai.uid)) count++
+                    }
+                    ensureActive()
+                    if (!onlyCount) _packages.postValue(Resource.success(list))
+                    _grantedCount.postValue(Resource.success(count))
                 }
-                if (!onlyCount) _packages.postValue(Resource.success(list))
-                _grantedCount.postValue(Resource.success(count))
             } catch (e: CancellationException) {
-
+                throw e
             } catch (e: Throwable) {
+                ensureActive()
                 _packages.postValue(Resource.error(e, null))
                 _grantedCount.postValue(Resource.error(e, 0))
             }

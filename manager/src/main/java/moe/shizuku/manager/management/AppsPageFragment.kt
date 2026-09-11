@@ -1,152 +1,144 @@
 package moe.shizuku.manager.management
+import moe.shizuku.manager.ui.component.pageNestedScroll
 
+import android.content.pm.PackageInfo
+import android.graphics.Bitmap
 import android.os.Bundle
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.AdapterDataObserver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import moe.shizuku.manager.R
-import moe.shizuku.manager.databinding.AppsActivityBinding
+import moe.shizuku.manager.Helps
+import moe.shizuku.manager.ktx.toHtml
+import moe.shizuku.manager.authorization.AuthorizationManager
+import moe.shizuku.manager.ui.component.MaterialRow
+import moe.shizuku.manager.ui.component.UiMetrics
+import moe.shizuku.manager.ui.theme.ShizukuTheme
+import moe.shizuku.manager.utils.AppIconCache
+import moe.shizuku.manager.utils.ShizukuSystemApis
+import moe.shizuku.manager.utils.UserHandleCompat
 import rikka.lifecycle.Status
-import rikka.recyclerview.addEdgeSpacing
-import rikka.recyclerview.fixEdgeEffect
 import rikka.shizuku.Shizuku
-import java.util.*
-import android.graphics.Rect
-import android.content.pm.PackageInfo
-import android.content.res.ColorStateList
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.RippleDrawable
 
 class AppsPageFragment : Fragment() {
-
     private val viewModel by appsViewModel()
-    private val adapter = AppsAdapter()
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        val binding = AppsActivityBinding.inflate(inflater, container, false)
-        val recyclerView = binding.list
-        recyclerView.fixEdgeEffect()
-        recyclerView.setHasFixedSize(true)
-        recyclerView.itemAnimator = null
-        recyclerView.adapter = adapter
-        recyclerView.addEdgeSpacing(
-            left = 16f,
-            right = 16f,
-            top = 8f,
-            bottom = 100f,
-            unit = TypedValue.COMPLEX_UNIT_DIP
-        )
-        recyclerView.addItemDecoration(AppsCardDecoration())
-
-        viewModel.packages.observe(viewLifecycleOwner) {
-            when (it.status) {
-                Status.SUCCESS -> adapter.updateData(it.data)
-                Status.ERROR -> {
-                    val message = Objects.toString(it.error, "unknown")
-                    val binderUnavailable =
-                        message.contains("binder haven't been received", ignoreCase = true) ||
-                            message.contains("IllegalStateException", ignoreCase = true) ||
-                            !Shizuku.pingBinder()
-                    // Binder may not be ready right after launch; don't surface transient binder errors.
-                    if (binderUnavailable) {
-                        adapter.showEmpty(R.string.app_management_empty_service_not_running)
-                    } else {
-                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                        adapter.showEmpty(R.string.home_app_management_empty)
-                    }
-                }
-                Status.LOADING -> Unit
-            }
-        }
-        if (viewModel.packages.value == null) {
-            viewModel.load()
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+        ComposeView(requireContext()).apply {
+            filterTouchesWhenObscured = true
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent { ShizukuTheme { AppsScreen() } }
         }
 
-        adapter.registerAdapterDataObserver(object : AdapterDataObserver() {
-            override fun onItemRangeChanged(positionStart: Int, itemCount: Int, payload: Any?) {
-                if (Shizuku.pingBinder()) {
-                    viewModel.load(true)
-                }
-            }
-        })
-
-        return binding.root
+    override fun onResume() {
+        super.onResume()
+        viewModel.load()
     }
 
-    private inner class AppsCardDecoration : RecyclerView.ItemDecoration() {
-        private val itemVertical = (1f * resources.displayMetrics.density).toInt()
-        private val cornerRadius = 28f * resources.displayMetrics.density
-        private val middleRadius = 2f * resources.displayMetrics.density
-        private val cardColor = requireContext().getColor(R.color.home_card_background_color)
-        private val rippleColor by lazy { resolveRippleColor() }
-
-        override fun onDraw(c: android.graphics.Canvas, parent: RecyclerView, state: RecyclerView.State) {
-            val appsAdapter = parent.adapter as? AppsAdapter ?: return
-            val items = appsAdapter.dataItems
-            for (i in 0 until parent.childCount) {
-                val child = parent.getChildAt(i)
-                val pos = parent.getChildAdapterPosition(child)
-                if (pos == RecyclerView.NO_POSITION) continue
-                val item = items.getOrNull(pos)
-                if (item !is PackageInfo) continue
-
-                val prevIsCard = pos > 0 && items.getOrNull(pos - 1) is PackageInfo
-                val nextIsCard = pos < items.size - 1 && items.getOrNull(pos + 1) is PackageInfo
-                val topRadius = if (prevIsCard) middleRadius else cornerRadius
-                val bottomRadius = if (nextIsCard) middleRadius else cornerRadius
-                val shapeCode = when {
-                    !prevIsCard && !nextIsCard -> 0
-                    !prevIsCard -> 1
-                    !nextIsCard -> 2
-                    else -> 3
-                }
-                val needResetBackground =
-                    (child.getTag(R.id.tag_card_shape_code) as? Int) != shapeCode ||
-                        child.background !is RippleDrawable
-                if (needResetBackground) {
-                    child.setTag(R.id.tag_card_shape_code, shapeCode)
-                    child.background = createCardBackground(topRadius, bottomRadius, rippleColor, cardColor)
+    @Composable
+    private fun AppsScreen() {
+        val resource by viewModel.packages.observeAsState()
+        val packages = resource?.data.orEmpty()
+        var error by remember { mutableStateOf<Pair<Int, String>?>(null) }
+        LaunchedEffect(resource) {
+            if (resource?.status == Status.ERROR && Shizuku.pingBinder()) {
+                error = R.string.nav_apps to (resource?.error?.message ?: "Unknown error")
+            }
+        }
+        val bottomPadding = moe.shizuku.manager.ui.component.LocalPageBottomPadding.current
+        LazyColumn(Modifier.fillMaxSize().pageNestedScroll(), contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, bottomPadding + 24.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (resource == null || resource?.status == Status.LOADING) item {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    CircularProgressIndicator()
                 }
             }
-        }
-
-        override fun getItemOffsets(outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
-            val pos = parent.getChildAdapterPosition(view)
-            if (pos == RecyclerView.NO_POSITION) return
-            val item = (parent.adapter as? AppsAdapter)?.dataItems?.getOrNull(pos)
-            if (item is PackageInfo) {
-                outRect.top = itemVertical
-                outRect.bottom = itemVertical
+            if (resource?.status == Status.ERROR || (resource != null && packages.isEmpty())) item {
+                MaterialRow(stringResource(R.string.nav_apps),
+                    stringResource(if (!Shizuku.pingBinder()) R.string.app_management_empty_service_not_running
+                        else R.string.home_app_management_empty), R.drawable.ic_apps_24dp)
+            }
+            itemsIndexed(packages, key = { _, pi -> "${pi.packageName}:${pi.applicationInfo?.uid}" }) { index, pi ->
+                AppRow(pi, index, packages.size, onError = { error = it })
             }
         }
+        if (error != null) AlertDialog(onDismissRequest = { error = null },
+            title = { Text(stringResource(error!!.first)) },
+            text = { Text(error!!.second) },
+            confirmButton = { TextButton(onClick = { error = null }) { Text(stringResource(android.R.string.ok)) } })
+    }
 
-        private fun resolveRippleColor(): Int {
-            val out = android.util.TypedValue()
-            requireContext().theme.resolveAttribute(com.google.android.material.R.attr.colorControlHighlight, out, true)
-            return out.data
-        }
-
-        private fun createCardBackground(topRadius: Float, bottomRadius: Float, rippleColor: Int, cardColor: Int): RippleDrawable {
-            val content = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadii = floatArrayOf(
-                    topRadius, topRadius,
-                    topRadius, topRadius,
-                    bottomRadius, bottomRadius,
-                    bottomRadius, bottomRadius
-                )
-                setColor(cardColor)
+    @Composable
+    private fun AppRow(pi: PackageInfo, index: Int, count: Int, onError: (Pair<Int, String>) -> Unit) {
+        val context = LocalContext.current
+        val ai = pi.applicationInfo ?: return
+        val scope = rememberCoroutineScope()
+        var busy by remember(pi) { mutableStateOf(false) }
+        var granted by remember(pi) { mutableStateOf(false) }
+        var loaded by remember(pi) { mutableStateOf(false) }
+        var label by remember(pi) { mutableStateOf(pi.packageName) }
+        var bitmap by remember(pi) { mutableStateOf<Bitmap?>(null) }
+        LaunchedEffect(pi) {
+            val row = withContext(Dispatchers.IO) {
+                val userId = UserHandleCompat.getUserId(ai.uid)
+                val name = runCatching { ai.loadLabel(context.packageManager).toString() }.getOrDefault(pi.packageName)
+                val displayName = if (userId == UserHandleCompat.myUserId()) name
+                    else "$name - ${runCatching { ShizukuSystemApis.getUserInfo(userId).name }.getOrDefault(userId.toString())} ($userId)"
+                Triple(displayName, runCatching { AuthorizationManager.granted(pi.packageName, ai.uid) }.getOrDefault(false),
+                    runCatching { AppIconCache.getOrLoadBitmap(context, ai, userId,
+                        (UiMetrics.AppIconSize.value * context.resources.displayMetrics.density).toInt()) }.getOrNull())
             }
-            return RippleDrawable(ColorStateList.valueOf(rippleColor), content, content.constantState?.newDrawable())
+            label = row.first
+            granted = row.second
+            bitmap = row.third
+            loaded = true
         }
+        val requiresRoot = ai.metaData?.getBoolean("moe.shizuku.client.V3_REQUIRES_ROOT") == true
+        val limitedMessage = stringResource(R.string.app_management_dialog_adb_is_limited_message,
+            Helps.ADB.get()).toHtml().toString()
+        MaterialRow(title = label, summary = pi.packageName + if (requiresRoot)
+            " · " + stringResource(R.string.app_management_item_summary_requires_root) else "",
+            index = index, count = count, enabled = loaded && !busy, checked = granted,
+            leading = {
+                bitmap?.let { Image(it.asImageBitmap(), null, Modifier.size(UiMetrics.AppIconSize)) }
+                    ?: Icon(painterResource(R.drawable.ic_apps_24dp), null, Modifier.size(UiMetrics.AppIconSize))
+            },
+            onCheckedChange = { desired ->
+                busy = true
+                scope.launch {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            if (desired) AuthorizationManager.grant(pi.packageName, ai.uid)
+                            else AuthorizationManager.revoke(pi.packageName, ai.uid)
+                        }
+                        granted = desired
+                        // Shared UIDs may affect more than one row.
+                        viewModel.load()
+                    } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        if (e is SecurityException && runCatching { Shizuku.getUid() }.getOrDefault(-1) != 0) {
+                            onError(R.string.app_management_dialog_adb_is_limited_title to limitedMessage)
+                        } else onError(R.string.nav_apps to (e.message ?: e.javaClass.simpleName))
+                    } finally { busy = false }
+                }
+            })
     }
 }

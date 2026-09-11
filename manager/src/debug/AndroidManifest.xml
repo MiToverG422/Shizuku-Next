@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Non-exported host for local Compose/Fragment interoperability tests. -->
+        <activity android:name="androidx.fragment.app.FragmentActivity" android:exported="false" />
+    </application>
+</manifest>

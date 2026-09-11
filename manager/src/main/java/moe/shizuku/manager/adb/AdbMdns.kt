@@ -42,6 +42,8 @@ class AdbMdns(
 
     private fun onDiscoveryStart() {
         registered = true
+        // stop() can arrive before the asynchronous discovery-start callback.
+        if (!running) runCatching { nsdManager.stopServiceDiscovery(listener) }
     }
 
     private fun onDiscoveryStop() {

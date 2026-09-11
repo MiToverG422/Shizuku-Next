@@ -1,5 +1,9 @@
 plugins {
     id("idea")
+    id("com.android.application") apply false
+    id("com.android.library") apply false
+    id("org.jetbrains.kotlin.android") apply false
+    id("org.jetbrains.kotlin.plugin.compose") apply false
 }
 
 idea.module {
@@ -9,7 +13,7 @@ idea.module {
 subprojects {
     plugins.withId("com.android.base") {
         android {
-            compileSdk = 36
+            compileSdk = 37
             buildToolsVersion = "36.0.0"
             ndkVersion = "29.0.13113456"
             defaultConfig {

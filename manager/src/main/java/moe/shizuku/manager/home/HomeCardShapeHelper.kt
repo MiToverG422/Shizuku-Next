@@ -9,7 +9,7 @@ internal object HomeCardShapeHelper {
 
     fun applyStandaloneShape(view: View) {
         val card = view as? MaterialCardView ?: return
-        val big = 28f * card.resources.displayMetrics.density
+        val big = 20f * card.resources.displayMetrics.density
 
         card.shapeAppearanceModel = card.shapeAppearanceModel.toBuilder()
             .setTopLeftCornerSize(big)
@@ -40,8 +40,8 @@ internal object HomeCardShapeHelper {
             (position <= firstCardAdapterPosition) to (position == total - 1)
         }
 
-        val big = 28f * card.resources.displayMetrics.density
-        val small = 2f * card.resources.displayMetrics.density
+        val big = 20f * card.resources.displayMetrics.density
+        val small = 4f * card.resources.displayMetrics.density
 
         val top = if (isFirst) big else small
         val bottom = if (isLast) big else small

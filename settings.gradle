@@ -5,10 +5,10 @@ pluginManagement {
         mavenCentral()
     }
     plugins {
-        id("com.android.application") version "8.10.1"
-        id("com.android.library") version "8.10.1"
-        id("org.jetbrains.kotlin.android") version "2.1.21"
-        id("org.jetbrains.kotlin.plugin.compose") version "2.1.21"
+        id("com.android.application") version "9.2.1"
+        id("com.android.library") version "9.2.1"
+        id("org.jetbrains.kotlin.android") version "2.4.10"
+        id("org.jetbrains.kotlin.plugin.compose") version "2.4.10"
         id("dev.rikka.tools.autoresconfig") version "1.2.2"
         id("dev.rikka.tools.materialthemebuilder") version "1.5.1"
         id("dev.rikka.tools.refine") version "4.4.0"
@@ -77,6 +77,3 @@ project(':provider').projectDir = file("$root${File.separator}provider")
 
 include ':server-shared'
 project(':server-shared').projectDir = file("$root${File.separator}server-shared")
-
-include ':hidden-api-stub'
-project(':hidden-api-stub').projectDir = file("$root${File.separator}hidden-api-stub")

@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.topjohnwu.superuser.CallbackList
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
@@ -18,8 +17,21 @@ import moe.shizuku.manager.adb.AdbClient
 import moe.shizuku.manager.adb.AdbKey
 import moe.shizuku.manager.adb.AdbKeyException
 import moe.shizuku.manager.adb.PreferenceAdbKeyStore
-import moe.shizuku.manager.app.AppBarActivity
-import moe.shizuku.manager.databinding.StarterActivityBinding
+import moe.shizuku.manager.app.AppActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import moe.shizuku.manager.ui.component.MaterialPage
+import moe.shizuku.manager.ui.theme.ShizukuTheme
 import rikka.lifecycle.Resource
 import rikka.lifecycle.Status
 import rikka.lifecycle.viewModels
@@ -29,7 +41,9 @@ import javax.net.ssl.SSLProtocolException
 
 private class NotRootedException : Exception()
 
-class StarterActivity : AppBarActivity() {
+class StarterActivity : AppActivity() {
+    private var outputText by mutableStateOf("")
+    private var errorMessage by mutableIntStateOf(0)
 
     private val viewModel by viewModels {
         ViewModel(
@@ -40,18 +54,25 @@ class StarterActivity : AppBarActivity() {
         )
     }
 
-    override fun useAppBarScrollingContent(): Boolean {
-        return false
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_close_24)
-
-        val binding = StarterActivityBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        enableEdgeToEdge()
+        setContent {
+            ShizukuTheme {
+                MaterialPage(stringResource(R.string.home_root_button_start), { finish() }) {
+                    SelectionContainer {
+                        Text(outputText, Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace))
+                    }
+                }
+                if (errorMessage != 0) AlertDialog(
+                    onDismissRequest = { errorMessage = 0 },
+                    text = { Text(stringResource(errorMessage)) },
+                    confirmButton = { TextButton(onClick = { errorMessage = 0 }) { Text(stringResource(android.R.string.ok)) } },
+                )
+            }
+        }
 
         viewModel.output.observe(this) {
             val output = it.data!!.trim()
@@ -87,13 +108,10 @@ class StarterActivity : AppBarActivity() {
                 }
 
                 if (message != 0) {
-                    MaterialAlertDialogBuilder(this)
-                        .setMessage(message)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
+                    errorMessage = message
                 }
             }
-            binding.text1.text = output
+            outputText = output.toString()
         }
     }
 

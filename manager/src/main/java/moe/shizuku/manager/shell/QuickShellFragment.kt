@@ -1,16 +1,26 @@
-﻿package moe.shizuku.manager.shell
+package moe.shizuku.manager.shell
+import moe.shizuku.manager.ui.component.pageNestedScroll
 
 import android.os.Bundle
-import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import moe.shizuku.manager.ui.theme.ShizukuTheme
 import androidx.fragment.app.Fragment
-import com.google.android.material.color.MaterialColors
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import moe.shizuku.manager.R
 import rikka.shizuku.Shizuku
 import java.io.BufferedReader
@@ -32,55 +42,76 @@ class QuickShellFragment : Fragment() {
     @Volatile
     private var interactiveWriter: BufferedWriter? = null
 
-    private lateinit var input: TextInputEditText
-    private lateinit var inputLayout: TextInputLayout
-    private lateinit var output: TextView
+    private var commandText by mutableStateOf("")
+    private var outputText by mutableStateOf("")
+    private var commandRunning by mutableStateOf(false)
+    private var interactive by mutableStateOf(false)
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        val root = inflater.inflate(R.layout.quickshell_fragment, container, false)
-        input = root.findViewById(R.id.command_input)
-        inputLayout = root.findViewById(R.id.command_input_layout)
-        output = root.findViewById(R.id.output_text)
-        val monetColor = MaterialColors.getColor(inputLayout, com.google.android.material.R.attr.colorPrimary)
-        inputLayout.setEndIconTintList(ColorStateList.valueOf(monetColor))
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+        ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent { ShizukuTheme { TerminalScreen() } }
+        }
 
-        inputLayout.setEndIconOnClickListener {
-            val text = input.text?.toString()?.trim().orEmpty()
-            if (text.isBlank()) return@setEndIconOnClickListener
-
-            if (interactiveProcess != null) {
-                sendInteractiveInput(text)
-                input.setText("")
-                return@setEndIconOnClickListener
-            }
-
-            if (!Shizuku.pingBinder()) {
-                Toast.makeText(requireContext(), R.string.quickshell_no_server, Toast.LENGTH_SHORT).show()
-                return@setEndIconOnClickListener
-            }
-
-            val command = text
-            if (isInteractiveShellCommand(command)) {
-                input.setText("")
-                startInteractiveSession(command)
-                return@setEndIconOnClickListener
-            }
-
-            inputLayout.isEndIconVisible = false
-            output.text = ""
-            executor.execute {
-                val result = runCommandWithLog(command)
-                activity?.runOnUiThread {
-                    output.text = result
-                    inputLayout.isEndIconVisible = true
+    @Composable
+    private fun TerminalScreen() {
+        Column(Modifier.fillMaxSize().pageNestedScroll().padding(horizontal = 16.dp)
+            .padding(bottom = moe.shizuku.manager.ui.component.LocalPageBottomPadding.current),
+            verticalArrangement = Arrangement.spacedBy(13.dp)) {
+            OutlinedTextField(
+                value = commandText, onValueChange = { commandText = it },
+                label = { Text(stringResource(if (interactive) R.string.quickshell_inputs else R.string.quickshell_hint)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                minLines = 1, maxLines = 4,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
+                trailingIcon = {
+                    IconButton(enabled = !commandRunning && commandText.isNotBlank(), onClick = { submitCommand() }) {
+                        if (commandRunning) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                        else Icon(painterResource(if (interactive) R.drawable.ic_filled_send_24 else R.drawable.ic_filled_play_arrow_24),
+                            stringResource(if (interactive) R.string.quickshell_send else R.string.quickshell_run))
+                    }
+                })
+            Surface(Modifier.weight(1f).fillMaxWidth(), shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceBright) {
+                SelectionContainer {
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+                        Text(outputText.ifEmpty { getString(R.string.quickshell_hint) },
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                            color = if (outputText.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
+            Spacer(Modifier.height(8.dp))
         }
-        return root
+    }
+
+    private fun submitCommand() {
+        val text = commandText.trim()
+        if (text.isBlank() || commandRunning) return
+        if (interactiveProcess != null) {
+            sendInteractiveInput(text)
+            commandText = ""
+            return
+        }
+        if (!Shizuku.pingBinder()) {
+            Toast.makeText(requireContext(), R.string.quickshell_no_server, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (isInteractiveShellCommand(text)) {
+            commandText = ""
+            startInteractiveSession(text)
+            return
+        }
+        commandRunning = true
+        outputText = ""
+        executor.execute {
+            val result = runCommandWithLog(text)
+            activity?.runOnUiThread {
+                outputText = result
+                commandRunning = false
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -91,7 +122,7 @@ class QuickShellFragment : Fragment() {
     }
 
     private fun startInteractiveSession(command: String) {
-        output.text = ""
+        outputText = ""
         Thread({
             try {
                 val process = startProcess(arrayOf(command)) ?: run {
@@ -102,10 +133,8 @@ class QuickShellFragment : Fragment() {
                 interactiveProcess = process
                 interactiveWriter = BufferedWriter(OutputStreamWriter(process.outputStream))
                 activity?.runOnUiThread {
-                    inputLayout.setEndIconDrawable(R.drawable.ic_filled_send_24)
-                    inputLayout.setEndIconContentDescription(R.string.quickshell_send)
-                    inputLayout.hint = getString(R.string.quickshell_inputs)
-                    output.text = buildString {
+                    interactive = true
+                    outputText = buildString {
                         append("[command] ").append(command).append('\n')
                         append("[start] pid=").append(if (pid > 0) pid else "unknown").append('\n')
                         append("[input] interactive session started\n")
@@ -118,9 +147,7 @@ class QuickShellFragment : Fragment() {
                 appendOutput("\n[error] ${t.message ?: t.javaClass.simpleName}\n[exit] code=-1\n")
             } finally {
                 activity?.runOnUiThread {
-                    inputLayout.setEndIconDrawable(R.drawable.ic_filled_play_arrow_24)
-                    inputLayout.setEndIconContentDescription(R.string.quickshell_run)
-                    inputLayout.hint = getString(R.string.quickshell_hint)
+                    interactive = false
                 }
                 stopInteractiveSession()
             }
@@ -165,7 +192,7 @@ class QuickShellFragment : Fragment() {
 
     private fun appendOutput(text: String) {
         activity?.runOnUiThread {
-            if (::output.isInitialized) output.append(text)
+            outputText += text
         }
     }
 

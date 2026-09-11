@@ -3,7 +3,6 @@ package moe.shizuku.manager.adb
 import android.app.AppOpsManager
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.NotificationManager
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -11,74 +10,86 @@ import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.core.view.isGone
-import androidx.core.view.isVisible
 import moe.shizuku.manager.AppConstants
-import moe.shizuku.manager.app.AppBarActivity
-import moe.shizuku.manager.databinding.AdbPairingTutorialActivityBinding
+import moe.shizuku.manager.app.AppActivity
+import moe.shizuku.manager.R
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import moe.shizuku.manager.ui.component.*
+import moe.shizuku.manager.ui.theme.ShizukuTheme
 import rikka.compatibility.DeviceCompatibility
 
 @RequiresApi(Build.VERSION_CODES.R)
-class AdbPairingTutorialActivity : AppBarActivity() {
+class AdbPairingTutorialActivity : AppActivity() {
 
-    private lateinit var binding: AdbPairingTutorialActivityBinding
-
-    private var notificationEnabled: Boolean = false
-
-    override fun useAppBarScrollingContent(): Boolean {
-        return false
-    }
+    private var notificationEnabled by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val context = this
-
-        binding = AdbPairingTutorialActivityBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
+        enableEdgeToEdge()
         notificationEnabled = isNotificationEnabled()
-
-        if (notificationEnabled) {
-            startPairingService()
-        }
-
-        binding.apply {
-            syncNotificationEnabled()
-
-            if (DeviceCompatibility.isMiui()) {
-                miui.isVisible = true
-            }
-
-            developerOptions.setOnClickListener {
-                val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                intent.putExtra(":settings:fragment_args_key", "toggle_adb_wireless")
-                try {
-                    context.startActivity(intent)
-                } catch (e: ActivityNotFoundException) {
+        if (notificationEnabled) startPairingService()
+        setContent {
+            ShizukuTheme {
+                MaterialPage(stringResource(R.string.adb_pairing), { finish() }) {
+                    LazyColumn(contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(13.dp)) {
+                        item("notification") {
+                            TonalCard(color = if (notificationEnabled) MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.errorContainer) {
+                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    HtmlText(stringResource(if (notificationEnabled) R.string.adb_pairing_tutorial_content_notification
+                                        else R.string.adb_pairing_tutorial_content_notification_blocked))
+                                    if (!notificationEnabled) Button(onClick = {
+                                        runCatching { startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)) }
+                                    }) { Text(stringResource(R.string.notification_settings)) }
+                                }
+                            }
+                        }
+                        if (notificationEnabled) {
+                            item("steps") {
+                                Column(verticalArrangement = Arrangement.spacedBy(UiMetrics.SegmentGap)) {
+                                    SegmentedCard(0, 4) {
+                                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            HtmlText(stringResource(R.string.adb_pairing_tutorial_content_network))
+                                            HtmlText(stringResource(R.string.adb_pairing_tutorial_content_network_limation_not_foreground))
+                                        }
+                                    }
+                                    MaterialRow(stringResource(R.string.adb_pairing_tutorial_content_steps),
+                                        stringResource(R.string.adb_pairing_tutorial_content_left_is_clickable),
+                                        R.drawable.ic_numeric_1_circle_outline_24, index = 1, count = 4,
+                                        onClick = {
+                                            runCatching { startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).apply {
+                                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                putExtra(":settings:fragment_args_key", "toggle_adb_wireless")
+                                            }) }
+                                        })
+                                    MaterialRow(stringResource(R.string.adb_pairing_tutorial_content_enter_pairing_code),
+                                        icon = R.drawable.ic_numeric_2_circle_outline_24, index = 2, count = 4)
+                                    MaterialRow(stringResource(R.string.adb_pairing_tutorial_content_finish),
+                                        icon = R.drawable.ic_numeric_3_circle_outline_24, index = 3, count = 4)
+                                }
+                            }
+                        }
+                        if (DeviceCompatibility.isMiui()) item("miui") {
+                            TonalCard(color = MaterialTheme.colorScheme.errorContainer) {
+                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    HtmlText(stringResource(R.string.adb_pairing_tutorial_content_miui))
+                                    HtmlText(stringResource(R.string.adb_pairing_tutorial_content_miui_2))
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
-            notificationOptions.setOnClickListener {
-                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                try {
-                    context.startActivity(intent)
-                } catch (e: ActivityNotFoundException) {
-                }
-            }
-        }
-    }
-
-    private fun syncNotificationEnabled() {
-        binding.apply {
-            step1.isVisible = notificationEnabled
-            step2.isVisible = notificationEnabled
-            step3.isVisible = notificationEnabled
-            network.isVisible = notificationEnabled
-            notification.isVisible = notificationEnabled
-            notificationDisabled.isGone = notificationEnabled
         }
     }
 
@@ -97,7 +108,6 @@ class AdbPairingTutorialActivity : AppBarActivity() {
         val newNotificationEnabled = isNotificationEnabled()
         if (newNotificationEnabled != notificationEnabled) {
             notificationEnabled = newNotificationEnabled
-            syncNotificationEnabled()
 
             if (newNotificationEnabled) {
                 startPairingService()

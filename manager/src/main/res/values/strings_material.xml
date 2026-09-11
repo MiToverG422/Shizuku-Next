@@ -1,0 +1,6 @@
+<!-- This manager ships English and the three Chinese variants (resConfigs). -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="home_runtime_title">Uptime</string>
+    <string name="ui_navigation_expand">Expand navigation</string>
+    <string name="ui_navigation_collapse">Collapse navigation</string>
+</resources>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="home_runtime_title">运行时间</string>
+    <string name="ui_navigation_expand">展开导航栏</string>
+    <string name="ui_navigation_collapse">收起导航栏</string>
+</resources>

@@ -29,9 +29,6 @@ android {
         prefab true
         compose true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.15'
-    }
     signingConfigs {
         sign
     }
@@ -69,6 +66,9 @@ android {
     }
     lint {
         checkReleaseBuilds false
+    }
+    testOptions {
+        unitTests.includeAndroidResources = true
     }
 }
 
@@ -148,13 +148,29 @@ configurations.configureEach {
     exclude group: 'androidx.profileinstaller', module: 'profileinstaller'
 }
 
+// JVM tests need original signed crypto jars ahead of Android's instrumented copies.
+// Do not strip signatures or alter the application's crypto dependencies.
+configurations { uiTestCrypto }
+tasks.withType(Test).configureEach {
+    doFirst { classpath = files(configurations.uiTestCrypto) + classpath }
+}
+
 dependencies {
-    implementation platform('androidx.compose:compose-bom:2024.09.03')
+    uiTestCrypto 'org.conscrypt:conscrypt-openjdk-uber:2.5.2'
+    uiTestCrypto 'org.bouncycastle:bcpkix-jdk18on:1.80'
+    implementation platform('androidx.compose:compose-bom:2026.08.00')
     implementation 'androidx.compose.ui:ui'
-    implementation 'androidx.compose.material3:material3'
+    // Expressive APIs, matching the Material implementation used by KernelSU-Mi.
+    implementation 'androidx.compose.material3:material3:1.5.0-alpha27'
+    implementation 'com.materialkolor:material-kolor:5.0.1'
+    implementation 'androidx.compose.runtime:runtime-livedata'
     implementation 'androidx.compose.animation:animation'
     implementation 'androidx.compose.ui:ui-tooling-preview'
     debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.16.1'
+    testImplementation 'androidx.compose.ui:ui-test-junit4'
     implementation 'androidx.activity:activity-compose:1.10.1'
 
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2'
@@ -171,7 +187,8 @@ dependencies {
 
     implementation 'androidx.browser:browser:1.8.0'
     implementation 'androidx.core:core-ktx:1.16.0'
-    implementation 'androidx.fragment:fragment-ktx:1.8.7'
+    implementation 'androidx.fragment:fragment-ktx:1.8.9'
+    implementation 'androidx.fragment:fragment-compose:1.8.9'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'androidx.work:work-runtime-ktx:2.10.1'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.0'
