@@ -2,6 +2,13 @@
     public static final ** CREATOR;
 }
 
+# Room 2.6's consumer rules keep generated database class names, but R8 full mode
+# also needs their no-arg constructors for Room's reflective instantiation.
+# WorkManager uses WorkDatabase_Impl during application startup when keep-alive is on.
+-keepclassmembers class * extends androidx.room.RoomDatabase {
+    public <init>();
+}
+
 -keepclasseswithmembernames,includedescriptorclasses class * {
     native <methods>;
 }
